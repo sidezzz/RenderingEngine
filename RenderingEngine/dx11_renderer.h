@@ -7,5 +7,5 @@
 class Dx11Renderer : public Renderer
 {
 public:
-
+	void RenderScene(Scene* scene) override;
 };

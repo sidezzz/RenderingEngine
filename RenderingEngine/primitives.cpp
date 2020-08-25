@@ -63,26 +63,31 @@ Matrix4x4 operator*(Matrix4x4 a, const Matrix4x4& b)
 
 Matrix4x4 Transform::ToMatrix() const
 {
-	Matrix4x4 scale_m(
-		Vector3(scale.x, 0.f, 0.f),
-		Vector3(0.f, scale.y, 0.f),
-		Vector3(0.f, 0.f, scale.z),
-		Vector3(0.f, 0.f, 0.f)
-	);
-	scale_m.m[3][3] = 1.f;
-
-	Matrix4x4 trans_m;
-	trans_m.m[0][0] = 1.f; trans_m.m[0][3] = translation.x;
-	trans_m.m[1][1] = 1.f; trans_m.m[1][3] = translation.y;
-	trans_m.m[2][2] = 1.f; trans_m.m[2][3] = translation.z;
-	trans_m.m[3][3] = 1.f;
-
-	Matrix4x4 rot_x_m(
+	Matrix4x4 scale_trans_m(
 		Vector3(scale.x, 0.f, 0.f),
 		Vector3(0.f, scale.y, 0.f),
 		Vector3(0.f, 0.f, scale.z),
 		Vector3(0.f, 0.f, 0.f)
 	);
 
-	return scale_m * trans_m;
+	scale_trans_m.m[0][3] = translation.x;
+	scale_trans_m.m[1][3] = translation.y;
+	scale_trans_m.m[2][3] = translation.z;
+
+	auto rad_rotator = DegreeToRad(rotation);
+	auto cw = std::cos(rad_rotator.yaw);
+	auto sw = std::sin(rad_rotator.yaw);
+	auto cv = std::cos(rad_rotator.pitch);
+	auto sv = std::sin(rad_rotator.pitch);
+	auto cu = std::cos(rad_rotator.roll);
+	auto su = std::sin(rad_rotator.roll);
+
+	Matrix4x4 rot_m(
+		Vector3(cv * cw, su * sv * cw - cu * sw, su * sw + cu * sv * cw),
+		Vector3(cv * sw, cu * cw + su * sv * sw, cu * sv * sw - su * cw),
+		Vector3(-sv, su * cv, cu * cv),
+		Vector3(0.f, 0.f, 0.f)
+	);
+
+	return scale_trans_m * rot_m;
 }

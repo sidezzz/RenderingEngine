@@ -30,9 +30,9 @@ int main()
 	m2.m[3][3] = 83;
 
 	auto m3 = m1 * m2;
-	PrintMatrix(m3);
+	//PrintMatrix(m3);
 
-	Transform t(Vector3(123, 123, 123), {}, Vector3(2.f, 2.f, 2.f));
+	Transform t(Vector3(1, 0, 0), Rotator(90, 0, 0), Vector3(2.f, 2.f, 2.f));
 	PrintMatrix(t.ToMatrix());
 
 

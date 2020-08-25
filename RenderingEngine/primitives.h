@@ -1,4 +1,18 @@
 #pragma once
+#include <cmath>
+
+constexpr static auto M_PI = 3.14159265359;
+
+template<class T>
+T DegreeToRad(const T& angle)
+{
+	return angle * (M_PI / 180.0);
+}
+template<class T>
+constexpr T RadToDegree(const T& angle)
+{
+	return angle / (M_PI / 180.0);
+}
 
 struct Vector2
 {
@@ -185,10 +199,10 @@ struct Matrix4x4
 	constexpr Matrix4x4() = default;
 	constexpr Matrix4x4(const Vector3& x, const Vector3& y, const Vector3& z, const Vector3& w)
 	{
-		m[0][0] = x.x; m[0][1] = x.y; m[0][2] = x.z; m[0][3] = 0.f;
-		m[1][0] = y.x; m[1][1] = y.y; m[1][2] = y.z; m[0][3] = 0.f;
-		m[2][0] = z.x; m[2][1] = z.y; m[2][2] = z.z; m[0][3] = 0.f;
-		m[3][0] = w.x; m[3][1] = w.y; m[3][2] = w.z; m[0][3] = 1.f;
+		m[0][0] = x.x; m[0][1] = x.y; m[0][2] = x.z; m[3][3] = 0.f;
+		m[1][0] = y.x; m[1][1] = y.y; m[1][2] = y.z; m[3][3] = 0.f;
+		m[2][0] = z.x; m[2][1] = z.y; m[2][2] = z.z; m[3][3] = 0.f;
+		m[3][0] = w.x; m[3][1] = w.y; m[3][2] = w.z; m[3][3] = 1.f;
 	}
 
 	Matrix4x4 Inverse() const;
@@ -197,7 +211,6 @@ struct Matrix4x4
 };
 
 Matrix4x4 operator*(Matrix4x4 a, const Matrix4x4& b);
-Vector3 operator*(Matrix4x4 a, const Vector3& b);
 
 struct Transform
 {

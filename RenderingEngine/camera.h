@@ -8,5 +8,5 @@ public:
 private:
 	Transform transform;
 	Vector2 viewport_size_;
-	float fov_;
+	float fov_ = 90.f;
 };
