@@ -6,6 +6,7 @@ class Camera
 public:
 
 private:
-	Vector3 position_;
-	Rotator rotation_;
+	Transform transform;
+	Vector2 viewport_size_;
+	float fov_;
 };

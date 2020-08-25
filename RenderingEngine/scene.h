@@ -1,14 +1,15 @@
 #pragma once
-#include <vector>
+#include <list>
 
 #include "camera.h"
-#include "instance.h"
+#include "mesh_instance.h"
 
 class Scene
 {
 public:
 
 private:
-	std::vector<Instance> instances_;
+	std::list<MeshInstance> instances_;
+	std::list<std::shared_ptr<Mesh>> meshes_;
 	Camera camera_;
 };

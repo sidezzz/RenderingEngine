@@ -148,9 +148,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
-    <ClInclude Include="instance.h" />
+    <ClInclude Include="dx11_renderer.h" />
+    <ClInclude Include="mesh_instance.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="primitives.h" />
+    <ClInclude Include="renderer.h" />
     <ClInclude Include="scene.h" />
   </ItemGroup>
   <ItemGroup>

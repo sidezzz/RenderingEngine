@@ -3,7 +3,7 @@
 
 #include "mesh.h"
 
-class Instance
+class MeshInstance
 {
 public:
 
