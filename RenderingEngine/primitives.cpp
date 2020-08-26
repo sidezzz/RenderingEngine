@@ -204,5 +204,5 @@ Matrix4x4 Transform::ToMatrix() const
 		Vector3(0.f, 0.f, 0.f)
 	);
 
-	return scale_trans_m * rot_m;
+	return scale_trans_m * rot_m.Transpose();
 }

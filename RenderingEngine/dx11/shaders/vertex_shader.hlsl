@@ -17,15 +17,15 @@ struct PS_INPUT
 {
 	float4 position : SV_POSITION;
 	float4 color : COLOR0;
-	float2 uv  : TEXCOORD0;
+	float2 uv : TEXCOORD0;
 };
 
 PS_INPUT main(VS_INPUT input)
 {
 	PS_INPUT output;
 	output.position = mul(float4(input.position.xyz, 1.f), model_transform);
-	output.position = mul(view_transform, output.position);
-	output.position = mul(projection_transform, output.position);
+	output.position = mul(output.position, view_transform);
+	output.position = mul(output.position, projection_transform);
 	output.color = input.color;
 	output.uv = input.uv;
 	return output;

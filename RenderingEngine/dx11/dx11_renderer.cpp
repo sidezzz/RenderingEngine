@@ -45,7 +45,7 @@ bool Dx11Renderer::Initialize(HWND hwnd)
 	{
 		D3D11_RASTERIZER_DESC desc = {};
 		desc.FillMode = D3D11_FILL_SOLID;
-		desc.CullMode = D3D11_CULL_NONE;
+		desc.CullMode = D3D11_CULL_BACK;
 		desc.ScissorEnable = false;
 		desc.DepthClipEnable = true;
 		last_error_ = device_->CreateRasterizerState(&desc, rasterizer_state_.GetAddressOf());
@@ -174,10 +174,12 @@ void Dx11Renderer::RenderScene(Scene* scene)
 	SetupRenderState();
 	Dx11ConstantBuffer cpu_constant_buffer;
 	auto camera_transform = scene->GetCamera().GetTransform();
-	camera_transform.rotation.pitch += 90.f;
-	camera_transform.rotation.yaw += 90.f;
+	//camera_transform.rotation.pitch += 90.f;
+	camera_transform.rotation.roll += 90.f;
+	camera_transform.rotation.yaw += 270.f;
+	//camera_transform.rotation.yaw += 90.f;
 	camera_transform.rotation.Clamp();
-	cpu_constant_buffer.view_transform = camera_transform.ToMatrix().Inverse();
+	cpu_constant_buffer.view_transform = camera_transform.ToMatrix().Inverse().Transpose();
 	auto& projection = cpu_constant_buffer.projection_transform;
 
 	auto far_dist = 1000.f;
@@ -187,8 +189,8 @@ void Dx11Renderer::RenderScene(Scene* scene)
 	projection.m[1][1] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
 	projection.m[0][0] = projection.m[1][1] / scene->GetCamera().GetAspectRatio();
 	projection.m[2][2] = (near_dist + far_dist) * range_inv;
-	projection.m[3][2] = (near_dist * far_dist) * range_inv;
-	projection.m[2][3] = -1.f;
+	projection.m[2][3] = (near_dist * far_dist) * range_inv;
+	projection.m[3][2] = -1.f;
 	projection.m[3][3] = 0.f;
 	/*projection.m[1][1] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
 	projection.m[0][0] = projection.m[1][1] / scene->GetCamera().GetAspectRatio();
