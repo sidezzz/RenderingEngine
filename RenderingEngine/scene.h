@@ -10,7 +10,7 @@ public:
 	const std::list<MeshInstance>& GetInstances() const;
 	const Camera& GetCamera() const;
 
-private:
+//private:
 	std::list<MeshInstance> instances_;
 	std::list<std::shared_ptr<Mesh>> meshes_;
 	Camera camera_;

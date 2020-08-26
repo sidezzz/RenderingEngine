@@ -9,7 +9,7 @@ public:
 	std::shared_ptr<Mesh> GetMesh() const;
 	Transform GetTransform() const;
 
-private:
+//private:
 	Transform transform_;
 	std::shared_ptr<Mesh> mesh_;
 };

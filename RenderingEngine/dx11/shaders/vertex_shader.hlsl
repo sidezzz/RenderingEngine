@@ -7,8 +7,8 @@ cbuffer vertexBuffer : register(b0)
 
 struct VS_INPUT
 {
-	float4 position : POSITION;
-	float3 normal : NORMAL;
+	float3 position : POSITION;
+	//float3 normal : NORMAL;
 	float2 uv : TEXCOORD0;
 	float4 color : COLOR0;
 };
@@ -23,7 +23,7 @@ struct PS_INPUT
 PS_INPUT main(VS_INPUT input)
 {
 	PS_INPUT output;
-	output.position = mul(model_transform, input.position);
+	output.position = mul(float4(input.position.xyz, 1.f), model_transform);
 	output.position = mul(view_transform, output.position);
 	output.position = mul(projection_transform, output.position);
 	output.color = input.color;

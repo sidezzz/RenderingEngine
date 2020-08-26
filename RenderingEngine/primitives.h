@@ -261,4 +261,5 @@ struct ColorInt
 	};
 
 	constexpr ColorInt() = default;
+	constexpr ColorInt(uint32_t _value) : value(_value) {}
 };

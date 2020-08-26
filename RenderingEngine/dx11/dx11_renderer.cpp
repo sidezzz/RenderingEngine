@@ -43,17 +43,12 @@ bool Dx11Renderer::Initialize(HWND hwnd)
 		}
 	}
 	{
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> back_buffer;
-		last_error_ = swapchain_->GetBuffer(0, IID_PPV_ARGS(&back_buffer));
-		if (FAILED(last_error_))
-		{
-			return false;
-		}
-
-		D3D11_RENDER_TARGET_VIEW_DESC desc = {};
-		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-		last_error_ = device_->CreateRenderTargetView(back_buffer.Get(), &desc, render_target_.GetAddressOf());
+		D3D11_RASTERIZER_DESC desc = {};
+		desc.FillMode = D3D11_FILL_SOLID;
+		desc.CullMode = D3D11_CULL_NONE;
+		desc.ScissorEnable = false;
+		desc.DepthClipEnable = true;
+		last_error_ = device_->CreateRasterizerState(&desc, rasterizer_state_.GetAddressOf());
 		if (FAILED(last_error_))
 		{
 			return false;
@@ -87,7 +82,7 @@ bool Dx11Renderer::Initialize(HWND hwnd)
 		D3D11_INPUT_ELEMENT_DESC desc[] =
 		{
 			{ "POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			//{ "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(Vertex, uv),       D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "COLOR",    0, DXGI_FORMAT_R8G8B8A8_UNORM,  0, offsetof(Vertex, color),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
@@ -110,48 +105,116 @@ bool Dx11Renderer::Initialize(HWND hwnd)
 		}
 	}
 
+	return CreateViewportBuffers();
+}
+bool Dx11Renderer::CreateViewportBuffers()
+{
+	{
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> depth_stencil_buffer;
+		D3D11_TEXTURE2D_DESC desc = {};
+		desc.Width = std::max(1.f, viewport_size_.x);
+		desc.Height = std::max(1.f, viewport_size_.y);
+		desc.MipLevels = 1;
+		desc.ArraySize = 1;
+		desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Usage = D3D11_USAGE_DEFAULT;
+		desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		desc.CPUAccessFlags = 0;
+		desc.MiscFlags = 0;
+
+		last_error_ = device_->CreateTexture2D(&desc, nullptr, depth_stencil_buffer.GetAddressOf());
+		if (FAILED(last_error_))
+		{
+			return false;
+		}
+
+		last_error_ = device_->CreateDepthStencilView(depth_stencil_buffer.Get(), nullptr, depth_stencil_view_.GetAddressOf());
+		if (FAILED(last_error_))
+		{
+			return false;
+		}
+	}
+
+	{
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> back_buffer;
+		last_error_ = swapchain_->GetBuffer(0, IID_PPV_ARGS(&back_buffer));
+		if (FAILED(last_error_))
+		{
+			return false;
+		}
+
+		D3D11_RENDER_TARGET_VIEW_DESC desc = {};
+		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+		last_error_ = device_->CreateRenderTargetView(back_buffer.Get(), &desc, render_target_.GetAddressOf());
+		if (FAILED(last_error_))
+		{
+			return false;
+		}
+	}
 	return true;
 }
 bool Dx11Renderer::ResizeViewport(const Vector2& size)
 {
 	viewport_size_ = size;
 	render_target_.Reset();
+	depth_stencil_view_.Reset();
 	last_error_ = swapchain_->ResizeBuffers(0, size.x, size.y, DXGI_FORMAT_UNKNOWN, 0);
 	if (FAILED(last_error_))
 	{
 		return false;
 	}
 
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> back_buffer;
-	last_error_ = swapchain_->GetBuffer(0, IID_PPV_ARGS(&back_buffer));
-	if (FAILED(last_error_))
-	{
-		return false;
-	}
-
-	D3D11_RENDER_TARGET_VIEW_DESC desc = {};
-	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-	last_error_ = device_->CreateRenderTargetView(back_buffer.Get(), &desc, render_target_.GetAddressOf());
-	if (FAILED(last_error_))
-	{
-		return false;
-	}
-	return true;
+	return CreateViewportBuffers();
 }
 void Dx11Renderer::RenderScene(Scene* scene)
 {
 	SetupRenderState();
 	Dx11ConstantBuffer cpu_constant_buffer;
-	cpu_constant_buffer.view_transform = scene->GetCamera().GetTransform().ToMatrix().Inverse();
-
-	//float far_dist = 
-	//float frustrum_depth = FLT_MAX;
-
+	auto camera_transform = scene->GetCamera().GetTransform();
+	camera_transform.rotation.pitch += 90.f;
+	camera_transform.rotation.yaw += 90.f;
+	camera_transform.rotation.Clamp();
+	cpu_constant_buffer.view_transform = camera_transform.ToMatrix().Inverse();
 	auto& projection = cpu_constant_buffer.projection_transform;
-	projection.m[1][1] = 1.f / std::tan(0.5f * scene->GetCamera().GetFov());
+
+	auto far_dist = 1000.f;
+	auto near_dist = 0.1f;//(viewport_size_.x * 0.5f) / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
+
+	auto range_inv = 1.f / (near_dist - far_dist);
+	projection.m[1][1] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
+	projection.m[0][0] = projection.m[1][1] / scene->GetCamera().GetAspectRatio();
+	projection.m[2][2] = (near_dist + far_dist) * range_inv;
+	projection.m[3][2] = (near_dist * far_dist) * range_inv;
+	projection.m[2][3] = -1.f;
+	projection.m[3][3] = 0.f;
+	/*projection.m[1][1] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
+	projection.m[0][0] = projection.m[1][1] / scene->GetCamera().GetAspectRatio();
+	projection.m[2][2] = (far_dist) / (far_dist - near_dist);
+	projection.m[3][2] = -(near_dist * far_dist) / (far_dist - near_dist);
+	projection.m[2][3] = 1.f;
+	projection.m[3][3] = 0.f;*/
+
+	/*projection.m[1][1] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
+	projection.m[0][0] = projection.m[1][1] / scene->GetCamera().GetAspectRatio();
+	projection.m[2][2] = (far_dist) / (near_dist - far_dist);
+	projection.m[3][2] = (far_dist * near_dist) / (near_dist - far_dist);
+	projection.m[2][3] = -1.f;
+	projection.m[3][3] = 0.f;*/
+
+	//auto far_dist = std::numeric_limits<float>::infinity();
+	//auto near_dist = (viewport_size_.x * 0.5f) / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
+	/*auto frustrum_depth = far_dist - near_dist;
+	auto one_over_depth = 1.f / frustrum_depth;
+
+	projection.m[1][1] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
 	projection.m[0][0] = 1.f * projection.m[1][1] / scene->GetCamera().GetAspectRatio();
-	projection.m[0][0] = FLT_MAX;
+	projection.m[2][2] = far_dist * one_over_depth;
+	projection.m[3][2] = (-far_dist * near_dist) * one_over_depth;
+	projection.m[2][3] = 1.f;
+	projection.m[3][3] = 0.f;*/
 
 	Mesh* last_setup_mesh = nullptr;
 	for (auto&& instance : scene->GetInstances())
@@ -195,12 +258,12 @@ void Dx11Renderer::RenderScene(Scene* scene)
 		context_->DrawIndexed(mesh->GetIndices().size(), 0, 0);
 	}
 
-	last_error_ = swapchain_->Present(0, 0);
+	last_error_ = swapchain_->Present(1, 0);
 }
 
 void Dx11Renderer::SetupRenderState()
 {
-	context_->OMSetRenderTargets(1, render_target_.GetAddressOf(), nullptr);
+	context_->OMSetRenderTargets(1, render_target_.GetAddressOf(), depth_stencil_view_.Get());
 	context_->IASetInputLayout(input_layout_.Get());
 	context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	context_->VSSetShader(vertex_shader_.Get(), nullptr, 0);
@@ -208,6 +271,13 @@ void Dx11Renderer::SetupRenderState()
 	context_->PSSetShader(pixel_shader_.Get(), nullptr, 0);
 
 	context_->OMSetDepthStencilState(depth_stencil_state_.Get(), 0);
+	D3D11_VIEWPORT vp = {};
+	vp.Width = viewport_size_.x;
+	vp.Height = viewport_size_.y;
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	vp.TopLeftX = vp.TopLeftY = 0;
+	context_->RSSetViewports(1, &vp);
 	context_->RSSetState(rasterizer_state_.Get());
 	ColorFloat background;
 	background.r = 0.3f;
@@ -215,6 +285,7 @@ void Dx11Renderer::SetupRenderState()
 	background.b = 0.3f;
 	background.a = 1.f;
 	context_->ClearRenderTargetView(render_target_.Get(), background.raw);
+	context_->ClearDepthStencilView(depth_stencil_view_.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
 }
 std::unique_ptr<Dx11MeshRendererData> Dx11Renderer::CreateMeshRendererData(const Mesh* mesh)
 {

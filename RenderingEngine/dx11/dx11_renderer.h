@@ -1,5 +1,7 @@
 #pragma once
+#define NOMINMAX
 #include <Windows.h>
+#undef NOMINMAX
 #include <wrl.h>
 #include <d3d11.h>
 #pragma comment(lib, "d3d11.lib")
@@ -27,6 +29,7 @@ public:
 private:
 	void SetupRenderState();
 	std::unique_ptr<Dx11MeshRendererData> CreateMeshRendererData(const Mesh* mesh);
+	bool CreateViewportBuffers();
 
 	Microsoft::WRL::ComPtr<IDXGISwapChain> swapchain_;
 	Microsoft::WRL::ComPtr<ID3D11Device> device_;
@@ -35,6 +38,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> render_target_;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizer_state_;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_state_;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depth_stencil_view_;
 
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> input_layout_;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertex_shader_;

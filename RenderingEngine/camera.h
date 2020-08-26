@@ -8,7 +8,7 @@ public:
 	float GetFov() const;
 	float GetAspectRatio() const;
 
-private:
+//private:
 	Transform transform_;
 	float aspect_ratio_ = 1.f;
 	float fov_ = 90.f;
