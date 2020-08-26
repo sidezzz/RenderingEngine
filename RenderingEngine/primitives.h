@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include <cstdint>
 
 constexpr static auto M_PI = 3.14159265359;
 
@@ -205,7 +206,9 @@ struct Matrix4x4
 		m[3][0] = w.x; m[3][1] = w.y; m[3][2] = w.z; m[3][3] = 1.f;
 	}
 
+	float Determinant() const;
 	Matrix4x4 Inverse() const;
+	Matrix4x4 Transpose() const;
 
 	Matrix4x4& operator*=(const Matrix4x4& rhs);
 };
@@ -225,7 +228,7 @@ struct Transform
 	Matrix4x4 ToMatrix() const;
 };
 
-struct Color
+struct ColorFloat
 {
 	union
 	{
@@ -234,17 +237,28 @@ struct Color
 			float r;
 			float g;
 			float b;
+			float a;
 		};
-		float raw[3] = { 0 };
+		float raw[4] = { 0 };
 	};
 
-	constexpr Color() = default;
+	constexpr ColorFloat() = default;
 };
 
-struct Vertex
+struct ColorInt
 {
-	Vector3 position;
-	Vector3 normal;
-	Color color;
-	Vector2 uv;
+	union
+	{
+		struct
+		{
+			uint8_t r;
+			uint8_t g;
+			uint8_t b;
+			uint8_t a;
+		};
+		uint32_t value;
+		uint8_t raw[4] = { 0 };
+	};
+
+	constexpr ColorInt() = default;
 };

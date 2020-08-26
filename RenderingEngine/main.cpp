@@ -1,6 +1,8 @@
 #include <iostream>
+#include <Windows.h>
 
 #include "primitives.h"
+#include "dx11/dx11_renderer.h"
 
 void PrintMatrix(const Matrix4x4& m)
 {
@@ -14,27 +16,54 @@ void PrintMatrix(const Matrix4x4& m)
 	}
 }
 
+Scene SCENE;
+Dx11Renderer RENDERER;
+
+LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (msg)
+	{
+	case WM_SIZE:
+		if (wParam != SIZE_MINIMIZED)
+		{
+			RENDERER.ResizeViewport(Vector2{ (float)LOWORD(lParam), (float)HIWORD(lParam) });
+		}
+		return 0;
+	case WM_DESTROY:
+		::PostQuitMessage(0);
+		return 0;
+	}
+	return ::DefWindowProc(hWnd, msg, wParam, lParam);
+}
+
 int main()
 {
-	Matrix4x4 m1;
-	m1.m[0][0] = 123;
-	m1.m[0][1] = 33;
-	m1.m[1][3] = 44;
-	m1.m[3][3] = 83;
+	WNDCLASSEXA wc = { sizeof(WNDCLASSEXA), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandleA(NULL), NULL, NULL, NULL, NULL, "RenderingEngine", NULL };
+	RegisterClassExA(&wc);
+	HWND hwnd = CreateWindowA(wc.lpszClassName, "Rendering Engine", WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, wc.hInstance, NULL);
 
-	Matrix4x4 m2;
+	if (!RENDERER.Initialize(hwnd))
+	{
+		UnregisterClassA(wc.lpszClassName, wc.hInstance);
+		return 1;
+	}
 
-	m2.m[0][0] = 123;
-	m2.m[0][1] = 33;
-	m2.m[1][3] = 44;
-	m2.m[3][3] = 83;
+	ShowWindow(hwnd, SW_SHOWDEFAULT);
+	UpdateWindow(hwnd);
 
-	auto m3 = m1 * m2;
-	//PrintMatrix(m3);
+	MSG msg;
+	ZeroMemory(&msg, sizeof(msg));
+	while (msg.message != WM_QUIT)
+	{
+		if (PeekMessageA(&msg, NULL, 0U, 0U, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessageA(&msg);
+			continue;
+		}
 
-	Transform t(Vector3(1, 0, 0), Rotator(90, 0, 0), Vector3(2.f, 2.f, 2.f));
-	PrintMatrix(t.ToMatrix());
-
+		RENDERER.RenderScene(&SCENE);
+	}
 
 	return 0;
 }

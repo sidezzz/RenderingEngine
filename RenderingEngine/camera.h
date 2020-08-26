@@ -4,9 +4,12 @@
 class Camera
 {
 public:
+	Transform GetTransform() const;
+	float GetFov() const;
+	float GetAspectRatio() const;
 
 private:
-	Transform transform;
-	Vector2 viewport_size_;
+	Transform transform_;
+	float aspect_ratio_ = 1.f;
 	float fov_ = 90.f;
 };

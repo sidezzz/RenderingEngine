@@ -7,6 +7,8 @@
 class Scene
 {
 public:
+	const std::list<MeshInstance>& GetInstances() const;
+	const Camera& GetCamera() const;
 
 private:
 	std::list<MeshInstance> instances_;

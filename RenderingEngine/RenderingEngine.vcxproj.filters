@@ -13,8 +13,17 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Исходные файлы\shaders">
+    <Filter Include="Исходные файлы\dx11">
+      <UniqueIdentifier>{20e962ab-5ef4-4d9c-8d4c-c0084c3f14fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\dx11">
+      <UniqueIdentifier>{6f40cbe6-e16a-4c87-847c-960df60c151e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\dx11\shaders">
       <UniqueIdentifier>{8e0a0898-a08b-4a47-95a8-0d041f0648dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\dx11\shaders">
+      <UniqueIdentifier>{37b0d532-1af9-459f-9b92-321dac04038a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -22,6 +31,21 @@
       <Filter>Исходные файлы</Filter>
     </ClCompile>
     <ClCompile Include="primitives.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="dx11\dx11_renderer.cpp">
+      <Filter>Исходные файлы\dx11</Filter>
+    </ClCompile>
+    <ClCompile Include="mesh.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="scene.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="mesh_instance.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="camera.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,16 +68,22 @@
     <ClInclude Include="renderer.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="dx11_renderer.h">
-      <Filter>Файлы заголовков</Filter>
+    <ClInclude Include="dx11\dx11_renderer.h">
+      <Filter>Файлы заголовков\dx11</Filter>
+    </ClInclude>
+    <ClInclude Include="dx11\shaders\pixel_shader.h">
+      <Filter>Файлы заголовков\dx11\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="dx11\shaders\vertex_shader.h">
+      <Filter>Файлы заголовков\dx11\shaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="vertex_shader.hlsl">
-      <Filter>Исходные файлы\shaders</Filter>
+    <FxCompile Include="dx11\shaders\pixel_shader.hlsl">
+      <Filter>Исходные файлы\dx11\shaders</Filter>
     </FxCompile>
-    <FxCompile Include="pixel_shader.hlsl">
-      <Filter>Исходные файлы\shaders</Filter>
+    <FxCompile Include="dx11\shaders\vertex_shader.hlsl">
+      <Filter>Исходные файлы\dx11\shaders</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

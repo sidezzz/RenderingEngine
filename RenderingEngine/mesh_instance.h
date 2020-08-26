@@ -6,6 +6,8 @@
 class MeshInstance
 {
 public:
+	std::shared_ptr<Mesh> GetMesh() const;
+	Transform GetTransform() const;
 
 private:
 	Transform transform_;
