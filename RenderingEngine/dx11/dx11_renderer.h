@@ -36,7 +36,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context_;
 
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> render_target_;
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizer_state_;
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> solid_rasterizer_state_;
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> wireframe_rasterizer_state_;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_state_;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depth_stencil_view_;
 

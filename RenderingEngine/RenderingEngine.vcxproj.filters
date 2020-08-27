@@ -25,6 +25,12 @@
     <Filter Include="Исходные файлы\dx11\shaders">
       <UniqueIdentifier>{37b0d532-1af9-459f-9b92-321dac04038a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Файлы заголовков\3rd_party">
+      <UniqueIdentifier>{7f8bb1cd-8cf2-4cea-971a-75b5d5ca2c35}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\3rd_party">
+      <UniqueIdentifier>{485e1d79-870f-458e-8f4b-e1171c4c77b1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -47,6 +53,9 @@
     </ClCompile>
     <ClCompile Include="camera.cpp">
       <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="3rd_party\tiny_obj_loader.cc">
+      <Filter>Исходные файлы\3rd_party</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -76,6 +85,9 @@
     </ClInclude>
     <ClInclude Include="dx11\shaders\vertex_shader.h">
       <Filter>Файлы заголовков\dx11\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="3rd_party\tiny_obj_loader.h">
+      <Filter>Файлы заголовков\3rd_party</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

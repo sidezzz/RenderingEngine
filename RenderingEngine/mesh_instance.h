@@ -12,4 +12,5 @@ public:
 //private:
 	Transform transform_;
 	std::shared_ptr<Mesh> mesh_;
+	bool wireframe_ = false;
 };

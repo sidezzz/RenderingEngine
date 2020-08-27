@@ -3,11 +3,12 @@
 #include "shaders/vertex_shader.h"
 #include "shaders/pixel_shader.h"
 
-struct Dx11ConstantBuffer
+struct alignas(16) Dx11ConstantBuffer
 {
 	Matrix4x4 model_transform;
 	Matrix4x4 view_transform;
 	Matrix4x4 projection_transform;
+	Matrix4x4 model_view_projection_transform;
 };
 
 bool Dx11Renderer::Initialize(HWND hwnd)
@@ -18,7 +19,7 @@ bool Dx11Renderer::Initialize(HWND hwnd)
 		desc.BufferDesc.Width = 0;
 		desc.BufferDesc.Height = 0;
 		desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		desc.BufferDesc.RefreshRate.Numerator = 60;
+		desc.BufferDesc.RefreshRate.Numerator = 165;
 		desc.BufferDesc.RefreshRate.Denominator = 1;
 		desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 		desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -26,7 +27,7 @@ bool Dx11Renderer::Initialize(HWND hwnd)
 		desc.SampleDesc.Count = 1;
 		desc.SampleDesc.Quality = 0;
 		desc.Windowed = true;
-		desc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+		desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
 		uint32_t flags = 0;
 
@@ -45,10 +46,17 @@ bool Dx11Renderer::Initialize(HWND hwnd)
 	{
 		D3D11_RASTERIZER_DESC desc = {};
 		desc.FillMode = D3D11_FILL_SOLID;
-		desc.CullMode = D3D11_CULL_BACK;
+		desc.CullMode = D3D11_CULL_NONE;
 		desc.ScissorEnable = false;
 		desc.DepthClipEnable = true;
-		last_error_ = device_->CreateRasterizerState(&desc, rasterizer_state_.GetAddressOf());
+		last_error_ = device_->CreateRasterizerState(&desc, solid_rasterizer_state_.GetAddressOf());
+		if (FAILED(last_error_))
+		{
+			return false;
+		}
+
+		desc.FillMode = D3D11_FILL_WIREFRAME;
+		last_error_ = device_->CreateRasterizerState(&desc, wireframe_rasterizer_state_.GetAddressOf());
 		if (FAILED(last_error_))
 		{
 			return false;
@@ -82,9 +90,9 @@ bool Dx11Renderer::Initialize(HWND hwnd)
 		D3D11_INPUT_ELEMENT_DESC desc[] =
 		{
 			{ "POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			//{ "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(Vertex, uv),       D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "COLOR",    0, DXGI_FORMAT_R8G8B8A8_UNORM,  0, offsetof(Vertex, color),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD",  0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(Vertex, uv),       D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "COLOR",     0, DXGI_FORMAT_R8G8B8A8_UNORM,  0, offsetof(Vertex, color),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
 		last_error_ = device_->CreateInputLayout(desc, ARRAYSIZE(desc), G_vertex_shader, sizeof(G_vertex_shader), input_layout_.GetAddressOf());
 		if (FAILED(last_error_))
@@ -173,67 +181,12 @@ void Dx11Renderer::RenderScene(Scene* scene)
 {
 	SetupRenderState();
 	Dx11ConstantBuffer cpu_constant_buffer;
-	auto camera_transform = scene->GetCamera().GetTransform();
-	//camera_transform.rotation.pitch += 90.f;
-	//camera_transform.rotation.roll += 90.f;
-	//camera_transform.rotation.yaw += 270.f;
-	//camera_transform.rotation.yaw += 90.f;
-	camera_transform.rotation.Clamp();
-	cpu_constant_buffer.view_transform = camera_transform.ToMatrix().Inverse().Transpose();
-	auto& projection = cpu_constant_buffer.projection_transform;
-
-	auto far_dist = 1000.f;
-	auto near_dist = 1.f;//(viewport_size_.x * 0.5f) / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
-
-	auto range_inv = 1.f / (near_dist - far_dist);
-	projection.m[1][2] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
-	projection.m[0][1] = projection.m[1][2] / scene->GetCamera().GetAspectRatio();
-	projection.m[2][0] = -(near_dist + far_dist) * range_inv;
-	projection.m[3][0] = -(near_dist * far_dist) * range_inv;
-	projection.m[2][3] = -1.f;
-	projection.m[3][3] = 0.f;
-
-	/*auto range_inv = 1.f / (near_dist - far_dist);
-	projection.m[1][1] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
-	projection.m[0][0] = projection.m[1][1] / scene->GetCamera().GetAspectRatio();
-	projection.m[2][2] = far_dist * (far_dist - near_dist);
-	projection.m[2][3] = -(near_dist * far_dist) * (far_dist - near_dist);
-	projection.m[3][2] = 1.f;
-	projection.m[3][3] = 0.f;*/
-	/*auto range_inv = 1.f / (near_dist - far_dist);
-	projection.m[1][1] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
-	projection.m[0][0] = projection.m[1][1] / scene->GetCamera().GetAspectRatio();
-	projection.m[2][2] = (near_dist + far_dist) * range_inv;
-	projection.m[2][3] = (near_dist * far_dist) * range_inv;
-	projection.m[3][2] = -1.f;
-	projection.m[3][3] = 0.f;*/
-	/*projection.m[1][1] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
-	projection.m[0][0] = projection.m[1][1] / scene->GetCamera().GetAspectRatio();
-	projection.m[2][2] = (far_dist) / (far_dist - near_dist);
-	projection.m[3][2] = -(near_dist * far_dist) / (far_dist - near_dist);
-	projection.m[2][3] = 1.f;
-	projection.m[3][3] = 0.f;*/
-
-	/*projection.m[1][1] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
-	projection.m[0][0] = projection.m[1][1] / scene->GetCamera().GetAspectRatio();
-	projection.m[2][2] = (far_dist) / (near_dist - far_dist);
-	projection.m[3][2] = (far_dist * near_dist) / (near_dist - far_dist);
-	projection.m[2][3] = -1.f;
-	projection.m[3][3] = 0.f;*/
-
-	//auto far_dist = std::numeric_limits<float>::infinity();
-	//auto near_dist = (viewport_size_.x * 0.5f) / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
-	/*auto frustrum_depth = far_dist - near_dist;
-	auto one_over_depth = 1.f / frustrum_depth;
-
-	projection.m[1][1] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
-	projection.m[0][0] = 1.f * projection.m[1][1] / scene->GetCamera().GetAspectRatio();
-	projection.m[2][2] = far_dist * one_over_depth;
-	projection.m[3][2] = (-far_dist * near_dist) * one_over_depth;
-	projection.m[2][3] = 1.f;
-	projection.m[3][3] = 0.f;*/
+	cpu_constant_buffer.view_transform = scene->GetCamera().GetTransform().ToMatrix().Inverse();
+	cpu_constant_buffer.projection_transform = scene->GetCamera().GetProjection();
+	const auto view_projection = cpu_constant_buffer.projection_transform * cpu_constant_buffer.view_transform;
 
 	Mesh* last_setup_mesh = nullptr;
+	ID3D11RasterizerState* last_rasterizer_state_ = nullptr;
 	for (auto&& instance : scene->GetInstances())
 	{
 		auto mesh = instance.GetMesh();
@@ -260,7 +213,19 @@ void Dx11Renderer::RenderScene(Scene* scene)
 			last_setup_mesh = mesh.get();
 		}
 
+		if (instance.wireframe_ && last_rasterizer_state_ != wireframe_rasterizer_state_.Get())
+		{
+			context_->RSSetState(wireframe_rasterizer_state_.Get());
+			last_rasterizer_state_ = wireframe_rasterizer_state_.Get();
+		}
+		else if (!instance.wireframe_ && last_rasterizer_state_ != solid_rasterizer_state_.Get())
+		{
+			context_->RSSetState(solid_rasterizer_state_.Get());
+			last_rasterizer_state_ = solid_rasterizer_state_.Get();
+		}
+
 		cpu_constant_buffer.model_transform = instance.GetTransform().ToMatrix();
+		cpu_constant_buffer.model_view_projection_transform = view_projection * cpu_constant_buffer.model_transform;
 
 		D3D11_MAPPED_SUBRESOURCE constant_buffer_resource;
 		last_error_ = context_->Map(constant_buffer_.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constant_buffer_resource);
@@ -295,7 +260,6 @@ void Dx11Renderer::SetupRenderState()
 	vp.MaxDepth = 1.0f;
 	vp.TopLeftX = vp.TopLeftY = 0;
 	context_->RSSetViewports(1, &vp);
-	context_->RSSetState(rasterizer_state_.Get());
 	ColorFloat background;
 	background.r = 0.3f;
 	background.g = 0.3f;
