@@ -1,5 +1,6 @@
 #include <iostream>
 #include <Windows.h>
+#include <windowsx.h>
 
 #include "primitives.h"
 #include "dx11/dx11_renderer.h"
@@ -34,6 +35,39 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		::PostQuitMessage(0);
 		return 0;
+	case WM_MOUSEMOVE:
+		static auto last_x_pos = GET_X_LPARAM(lParam);
+		static auto last_y_pos = GET_Y_LPARAM(lParam);
+		auto x_pos = GET_X_LPARAM(lParam);
+		auto y_pos = GET_Y_LPARAM(lParam);
+
+		auto x_diff = x_pos - last_x_pos;
+		auto y_diff = y_pos - last_y_pos;
+
+		SCENE.camera_.transform_.rotation.yaw += x_diff * 0.1;
+		SCENE.camera_.transform_.rotation.pitch += y_diff * 0.1f;
+		SCENE.camera_.transform_.rotation.Clamp();
+
+		RECT rect;
+		GetClientRect(hWnd, &rect);
+
+		POINT ul;
+		ul.x = rect.left;
+		ul.y = rect.top;
+
+		POINT lr;
+		lr.x = rect.right;
+		lr.y = rect.bottom;
+
+		MapWindowPoints(hWnd, nullptr, &ul, 1);
+		MapWindowPoints(hWnd, nullptr, &lr, 1);
+
+		SetCursorPos(ul.x + (lr.x - ul.x) / 2, ul.y + (lr.y - ul.y) / 2);
+
+		last_x_pos = (lr.x - ul.x) / 2;
+		last_y_pos = (lr.y - ul.y) / 2;
+
+		return 0;
 	}
 	return ::DefWindowProc(hWnd, msg, wParam, lParam);
 }
@@ -52,11 +86,13 @@ int main()
 	auto pyramide_mesh = std::make_shared<Mesh>();
 	pyramide_mesh->vertices_ = 
 	{ 
-		Vertex{{-1,1,0}, {}, {}, 0xFFFFFF00}, Vertex{{0,0,3}, {}, {}, 0xFF00FF00}, Vertex{{-1,-1,0}, {}, {}, 0xFF00FFFF},
-		Vertex{{1,-1,0}, {}, {}, 0xFF0000FF}, Vertex{{1,1,0}, {}, {}, 0xFFFF0000},
-		Vertex{{-1,1,0}, {}, {}, 0xFF000000}, Vertex{{-1,-1,0}, {}, {}, 0xFF000000}, Vertex{{1,-1,0}, {}, {}, 0xFF000000}, Vertex{{1,1,0}, {}, {}, 0xFF000000}
+		Vertex{{-1,-1,0}, {}, {}, 0xFF00FFFF}, Vertex{{0,0,3}, {}, {}, 0xFF00FF00}, Vertex{{-1,1,0}, {}, {}, 0xFFFFFF00},
+		Vertex{{1,1,0}, {}, {}, 0xFF0000FF}, Vertex{{1,-1,0}, {}, {}, 0xFFFF0000},
+		Vertex{{-1,-1,0}, {}, {}, 0xFF000000}, Vertex{{-1,1,0}, {}, {}, 0xFF000000},
+		Vertex{{1,1,0}, {}, {}, 0xFF000000}, Vertex{{1,-1,0}, {}, {}, 0xFF000000}
 	};
 	pyramide_mesh->indices_ = { 0, 1, 2, 2, 1, 3, 3, 1, 4, 4, 1, 0, 5, 6, 7, 7, 8, 5 };
+
 
 	MeshInstance instance;
 	instance.mesh_ = pyramide_mesh;
@@ -84,11 +120,11 @@ int main()
 
 	SCENE.meshes_.push_back(pyramide_mesh);
 	SCENE.instances_.push_back(instance);
-	//SCENE.instances_.push_back(instance2);
-	//SCENE.instances_.push_back(instance3);
-	//SCENE.instances_.push_back(instance4);
-	//SCENE.instances_.push_back(instance5);
-	//SCENE.instances_.push_back(instance6);
+    SCENE.instances_.push_back(instance2);
+	SCENE.instances_.push_back(instance3);
+	SCENE.instances_.push_back(instance4);
+	SCENE.instances_.push_back(instance5);
+	SCENE.instances_.push_back(instance6);
 
 	//SCENE.camera_.transform_.scale.z = -1.f;
 
@@ -120,11 +156,12 @@ int main()
 		{
 			//i.transform_.rotation.pitch += 1.f;
 			//i.transform_.rotation.roll += 1.f;
-			i.transform_.rotation.yaw += 1.f;
+			//i.transform_.rotation.yaw += 1.f;
 			//i.transform_.translation.x -= 0.002;
 		}
 		//SCENE.camera_.transform_.rotation.roll += 0.1;
 		//SCENE.camera_.transform_.rotation.yaw += 0.1;
+		//SCENE.camera_.transform_.rotation.pitch += 0.1;
 
 		RENDERER.RenderScene(&SCENE);
 	}

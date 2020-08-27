@@ -11,5 +11,5 @@ public:
 //private:
 	Transform transform_;
 	float aspect_ratio_ = 1.f;
-	float fov_ = 90.f;
+	float fov_ = 75.f;
 };

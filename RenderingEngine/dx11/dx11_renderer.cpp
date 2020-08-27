@@ -175,23 +175,38 @@ void Dx11Renderer::RenderScene(Scene* scene)
 	Dx11ConstantBuffer cpu_constant_buffer;
 	auto camera_transform = scene->GetCamera().GetTransform();
 	//camera_transform.rotation.pitch += 90.f;
-	camera_transform.rotation.roll += 90.f;
-	camera_transform.rotation.yaw += 270.f;
+	//camera_transform.rotation.roll += 90.f;
+	//camera_transform.rotation.yaw += 270.f;
 	//camera_transform.rotation.yaw += 90.f;
 	camera_transform.rotation.Clamp();
 	cpu_constant_buffer.view_transform = camera_transform.ToMatrix().Inverse().Transpose();
 	auto& projection = cpu_constant_buffer.projection_transform;
 
 	auto far_dist = 1000.f;
-	auto near_dist = 0.1f;//(viewport_size_.x * 0.5f) / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
+	auto near_dist = 1.f;//(viewport_size_.x * 0.5f) / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
 
 	auto range_inv = 1.f / (near_dist - far_dist);
+	projection.m[1][2] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
+	projection.m[0][1] = projection.m[1][2] / scene->GetCamera().GetAspectRatio();
+	projection.m[2][0] = -(near_dist + far_dist) * range_inv;
+	projection.m[3][0] = -(near_dist * far_dist) * range_inv;
+	projection.m[2][3] = -1.f;
+	projection.m[3][3] = 0.f;
+
+	/*auto range_inv = 1.f / (near_dist - far_dist);
+	projection.m[1][1] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
+	projection.m[0][0] = projection.m[1][1] / scene->GetCamera().GetAspectRatio();
+	projection.m[2][2] = far_dist * (far_dist - near_dist);
+	projection.m[2][3] = -(near_dist * far_dist) * (far_dist - near_dist);
+	projection.m[3][2] = 1.f;
+	projection.m[3][3] = 0.f;*/
+	/*auto range_inv = 1.f / (near_dist - far_dist);
 	projection.m[1][1] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
 	projection.m[0][0] = projection.m[1][1] / scene->GetCamera().GetAspectRatio();
 	projection.m[2][2] = (near_dist + far_dist) * range_inv;
 	projection.m[2][3] = (near_dist * far_dist) * range_inv;
 	projection.m[3][2] = -1.f;
-	projection.m[3][3] = 0.f;
+	projection.m[3][3] = 0.f;*/
 	/*projection.m[1][1] = 1.f / std::tan(0.5f * DegreeToRad(scene->GetCamera().GetFov()));
 	projection.m[0][0] = projection.m[1][1] / scene->GetCamera().GetAspectRatio();
 	projection.m[2][2] = (far_dist) / (far_dist - near_dist);
