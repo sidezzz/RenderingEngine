@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 #include <Windows.h>
 #include <windowsx.h>
 
@@ -30,13 +31,14 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		{
 			auto size = Vector2{ (float)LOWORD(lParam), (float)HIWORD(lParam) };
 			RENDERER.ResizeViewport(size);
-			SCENE.camera_.aspect_ratio_ = size.x / size.y;
+			SCENE.GetCamera().SetAspectRatio(size.x / size.y);
 		}
 		return 0;
 	case WM_DESTROY:
 		::PostQuitMessage(0);
 		return 0;
 	case WM_MOUSEMOVE:
+	{
 		//return 0;
 		static auto last_x_pos = GET_X_LPARAM(lParam);
 		static auto last_y_pos = GET_Y_LPARAM(lParam);
@@ -46,9 +48,10 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		auto x_diff = x_pos - last_x_pos;
 		auto y_diff = y_pos - last_y_pos;
 
-		SCENE.camera_.transform_.rotation.yaw += x_diff * 0.1;
-		SCENE.camera_.transform_.rotation.pitch += y_diff * 0.1f;
-		SCENE.camera_.transform_.rotation.Clamp();
+		auto cam_rot = SCENE.GetCamera().GetRotation();
+		cam_rot.yaw += x_diff * 0.1;
+		cam_rot.pitch += y_diff * 0.1f;
+		SCENE.GetCamera().SetRotation(cam_rot.Clamp());
 
 		last_x_pos = x_pos;
 		last_y_pos = y_pos;
@@ -73,7 +76,10 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			last_x_pos = (lr.x - ul.x) / 2;
 			last_y_pos = (lr.y - ul.y) / 2;
 		}
-
+		return 0;
+	}
+	case WM_MOUSEWHEEL:
+		SCENE.GetCamera().SetFov(SCENE.GetCamera().GetFov() - (float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
 		return 0;
 	}
 	return ::DefWindowProc(hWnd, msg, wParam, lParam);
@@ -105,7 +111,8 @@ std::shared_ptr<Mesh> BuildTestMesh(std::string file_name)
 		std::cerr << "ERR " << err << std::endl;
 	}
 
-	auto mesh = std::make_shared<Mesh>();
+	std::vector<Vertex> converted_vertices;
+	std::vector<Index> converted_indices;
 	for (auto& shape : shapes)
 	{
 		int i = 0;
@@ -138,13 +145,13 @@ std::shared_ptr<Mesh> BuildTestMesh(std::string file_name)
 			color.a = 1.f;
 			vertex.color = ColorInt(color);*/
 
-			mesh->vertices_.emplace_back(std::move(vertex));
-			mesh->indices_.push_back(mesh->indices_.size());
+			converted_vertices.emplace_back(std::move(vertex));
+			converted_indices.push_back(converted_indices.size());
 			++i;
 		}
 	}
 
-	return mesh;
+	return std::make_shared<Mesh>(std::move(converted_vertices), std::move(converted_indices));
 }
 
 int main()
@@ -158,7 +165,7 @@ int main()
 	//t.rotation.pitch = 90.f;
 	PrintMatrix(t.ToMatrix());
 
-	auto pyramide_mesh = std::make_shared<Mesh>();
+	/*auto pyramide_mesh = std::make_shared<Mesh>();
 	pyramide_mesh->vertices_ = 
 	{ 
 		Vertex{{-1,-1,0}, Vector3(1,1,1), {}, 0xFF00FFFF}, Vertex{{0,0,3}, Vector3(1,1,1), {}, 0xFF00FF00}, Vertex{{-1,1,0}, Vector3(1,1,1), {}, 0xFFFFFFFF},
@@ -171,35 +178,33 @@ int main()
 
 	MeshInstance pyramide;
 	pyramide.mesh_ = pyramide_mesh;
-	pyramide.transform_.translation.x = 0.8f;
+	pyramide.transform_.translation.x = 0.8f;*/
 
-	MeshInstance car;
-	car.mesh_ = BuildTestMesh("D:\\Downloads\\6e48z1kc7r40-bugatti\\bugatti\\bugatti.obj");
-	car.transform_.translation.y = -10.f;
-	car.transform_.scale = Vector3(10, 10, 10);
+	MeshInstance car(BuildTestMesh("D:\\Downloads\\6e48z1kc7r40-bugatti\\bugatti\\bugatti.obj"));
+	car.SetScale({ 10, 10, 10 });
+	car.SetPosition({ 0, 0, 4 });
 
-	MeshInstance weapon;
-	weapon.mesh_ = BuildTestMesh("D:\\Downloads\\88yrcjq4775s-M4A4\\m4a1.obj");
-	weapon.transform_.scale = Vector3(0.3, 0.3, 0.3);
+	MeshInstance weapon(BuildTestMesh("D:\\Downloads\\88yrcjq4775s-M4A4\\m4a1.obj"));
+	weapon.SetPosition({ -40, -67, 185 });
+	weapon.SetScale({ 3, 3, 3 });
 
-	MeshInstance ironman;
-	ironman.mesh_ = BuildTestMesh("D:\\Downloads\\jzb865er6v-IronMan\\IronMan\\IronMan.obj");
-	ironman.transform_.scale = Vector3(0.1, 0.1, 0.1);
-	ironman.transform_.translation.x = -10;
+	MeshInstance ironman(BuildTestMesh("D:\\Downloads\\jzb865er6v-IronMan\\IronMan\\IronMan.obj"));
+	ironman.SetPosition({ 0, 50, 10 });
 
-	MeshInstance drone;
-	drone.mesh_ = BuildTestMesh("D:\\Downloads\\99-intergalactic_spaceship-obj\\Intergalactic_Spaceship-(Wavefront).obj");
-	drone.transform_.scale = Vector3(1, 1, 1);
-	drone.transform_.translation.x = 15;
+	MeshInstance wire_ironman = ironman;
+	wire_ironman.SetPosition(wire_ironman.GetPosition() + Vector3(80, 0, 0));
+	wire_ironman.SetRotation({ 180, 0, 0 });
+	wire_ironman.SetWireframe(true);
 
-	MeshInstance rungholt;
-	rungholt.mesh_ = BuildTestMesh("D:\\Downloads\\rungholt\\rungholt.obj");
-	rungholt.transform_.scale = Vector3(1, 1, 1);
+	MeshInstance drone(BuildTestMesh("D:\\Downloads\\99-intergalactic_spaceship-obj\\Intergalactic_Spaceship-(Wavefront).obj"));
+
+	MeshInstance rungholt(BuildTestMesh("D:\\Downloads\\rungholt\\rungholt.obj"));
 
 	SCENE.instances_.push_back(drone);
 	SCENE.instances_.push_back(car);
 	SCENE.instances_.push_back(weapon);
 	SCENE.instances_.push_back(ironman);
+	SCENE.instances_.push_back(wire_ironman);
 	SCENE.instances_.push_back(rungholt);
 
 
@@ -216,6 +221,9 @@ int main()
 	ShowWindow(hwnd, SW_SHOWDEFAULT);
 	UpdateWindow(hwnd);
 
+	std::chrono::high_resolution_clock clock;
+	auto last_frame_time = clock.now();
+
 	MSG msg;
 	ZeroMemory(&msg, sizeof(msg));
 	while (msg.message != WM_QUIT)
@@ -226,53 +234,48 @@ int main()
 			DispatchMessageA(&msg);
 			continue;
 		}
-		for (auto&& i : SCENE.instances_)
-		{
-			//i.transform_.rotation.pitch += 1.f;
-			//i.transform_.rotation.roll += 1.f;
-			//i.transform_.rotation.yaw += 0.1f;
-			//i.transform_.translation.x -= 0.01;
-		}
-		//SCENE.camera_.transform_.rotation.roll += 0.1;
-		//SCENE.camera_.transform_.rotation.yaw += 0.1;
-		//SCENE.camera_.transform_.rotation.pitch += 0.1;
-		//printf("%f\n", SCENE.camera_.transform_.rotation.Forward().x);
-		//auto fwd = SCENE.camera_.transform_.rotation.Forward();
-		//printf("%f %f %f\n", fwd.x, fwd.y, fwd.z);
-		auto speed = 0.1f;
+
+		auto current_frame_time = clock.now();
+
+		auto elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(current_frame_time - last_frame_time);
+
+		auto speed = 10.f * static_cast<float>(elapsed.count());
+		auto& camera = SCENE.GetCamera();
 		if (GetAsyncKeyState(0x57) & 0x8000)
 		{
-			SCENE.camera_.transform_.translation += SCENE.camera_.transform_.rotation.RotateVector({ 1,0,0 }) * speed;
+			camera.SetPosition(camera.GetPosition() + camera.GetRotation().RotateVector({ 1,0,0 }) * speed);
 		}
 		if (GetAsyncKeyState(0x53) & 0x8000)
 		{
-			SCENE.camera_.transform_.translation += SCENE.camera_.transform_.rotation.RotateVector({ -1,0,0 }) * speed;
+			camera.SetPosition(camera.GetPosition() + camera.GetRotation().RotateVector({ -1,0,0 }) * speed);
 		}
 		if (GetAsyncKeyState(0x41) & 0x8000)
 		{
-			SCENE.camera_.transform_.translation += SCENE.camera_.transform_.rotation.RotateVector({ 0,-1,0 }) * speed;
+			camera.SetPosition(camera.GetPosition() + camera.GetRotation().RotateVector({ 0,-1,0 }) * speed);
 		}
 		if (GetAsyncKeyState(0x44) & 0x8000)
 		{
-			SCENE.camera_.transform_.translation += SCENE.camera_.transform_.rotation.RotateVector({ 0,1,0 }) * speed;
+			camera.SetPosition(camera.GetPosition() + camera.GetRotation().RotateVector({ 0,1,0 }) * speed);
 		}
 		if (GetAsyncKeyState(0x51) & 0x8000)
 		{
-			SCENE.camera_.transform_.rotation.roll += speed;
+			camera.SetRotation(camera.GetRotation() + Rotator(0, 0, speed));
 		}
 		if (GetAsyncKeyState(0x45) & 0x8000)
 		{
-			SCENE.camera_.transform_.rotation.roll -= speed;
+			camera.SetRotation(camera.GetRotation() + Rotator(0, 0, -speed));
 		}
 		if (GetAsyncKeyState(VK_SPACE) & 0x8000)
 		{
-			SCENE.camera_.transform_.translation += SCENE.camera_.transform_.rotation.RotateVector({ 0,0,1 }) * speed;
+			camera.SetPosition(camera.GetPosition() + camera.GetRotation().RotateVector({ 0,0,1 }) * speed);
 		}
 		if (GetAsyncKeyState(VK_CONTROL) & 0x8000)
 		{
-			SCENE.camera_.transform_.translation += SCENE.camera_.transform_.rotation.RotateVector({ 0,0,-1 }) * speed;
+			camera.SetPosition(camera.GetPosition() + camera.GetRotation().RotateVector({ 0,0,-1 }) * speed);
 		}
+
 		RENDERER.RenderScene(&SCENE);
+		last_frame_time = current_frame_time;
 	}
 
 	return 0;

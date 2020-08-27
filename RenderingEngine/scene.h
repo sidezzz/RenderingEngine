@@ -9,9 +9,10 @@ class Scene
 public:
 	const std::list<MeshInstance>& GetInstances() const;
 	const Camera& GetCamera() const;
+	Camera& GetCamera();
 
 //private:
 	std::list<MeshInstance> instances_;
-	std::list<std::shared_ptr<Mesh>> meshes_;
+private:
 	Camera camera_;
 };

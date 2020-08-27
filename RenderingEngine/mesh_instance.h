@@ -1,16 +1,19 @@
 #pragma once
 #include <memory>
 
+#include "scene_object.h"
 #include "mesh.h"
 
-class MeshInstance
+class MeshInstance : public SceneObject
 {
 public:
-	std::shared_ptr<Mesh> GetMesh() const;
-	Transform GetTransform() const;
+	MeshInstance(std::shared_ptr<Mesh> mesh);
 
-//private:
-	Transform transform_;
+	std::shared_ptr<Mesh> GetMesh() const;
+	bool IsWireframe() const;
+	void SetWireframe(bool wireframe);
+
+private:
 	std::shared_ptr<Mesh> mesh_;
 	bool wireframe_ = false;
 };

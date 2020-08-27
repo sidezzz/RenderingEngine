@@ -1,10 +1,6 @@
 
 #include "camera.h"
 
-Transform Camera::GetTransform() const
-{
-	return transform_;
-}
 float Camera::GetFov() const
 {
 	return fov_;
@@ -26,4 +22,12 @@ Matrix4x4 Camera::GetProjection() const
 	projection.m[3][3] = 0.f;
 
 	return projection;
+}
+void Camera::SetFov(float fov)
+{
+	fov_ = std::clamp(fov, 0.001f, 179.f);
+}
+void Camera::SetAspectRatio(float aspect_ratio)
+{
+	aspect_ratio_ = aspect_ratio;
 }

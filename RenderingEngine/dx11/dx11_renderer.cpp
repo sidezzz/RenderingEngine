@@ -213,12 +213,12 @@ void Dx11Renderer::RenderScene(Scene* scene)
 			last_setup_mesh = mesh.get();
 		}
 
-		if (instance.wireframe_ && last_rasterizer_state_ != wireframe_rasterizer_state_.Get())
+		if (instance.IsWireframe() && last_rasterizer_state_ != wireframe_rasterizer_state_.Get())
 		{
 			context_->RSSetState(wireframe_rasterizer_state_.Get());
 			last_rasterizer_state_ = wireframe_rasterizer_state_.Get();
 		}
-		else if (!instance.wireframe_ && last_rasterizer_state_ != solid_rasterizer_state_.Get())
+		else if (!instance.IsWireframe() && last_rasterizer_state_ != solid_rasterizer_state_.Get())
 		{
 			context_->RSSetState(solid_rasterizer_state_.Get());
 			last_rasterizer_state_ = solid_rasterizer_state_.Get();

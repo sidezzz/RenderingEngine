@@ -1,6 +1,12 @@
 
 #include "mesh.h"
 
+Mesh::Mesh(std::vector<Vertex>&& vertices, std::vector<Index>&& indices)
+{
+	vertices_ = std::move(vertices);
+	indices_ = std::move(indices);
+}
+
 MeshRendererData* Mesh::GetMeshRendererData() const
 {
 	return renderer_data_.get();

@@ -57,6 +57,9 @@
     <ClCompile Include="3rd_party\tiny_obj_loader.cc">
       <Filter>Исходные файлы\3rd_party</Filter>
     </ClCompile>
+    <ClCompile Include="scene_object.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="primitives.h">
@@ -88,6 +91,9 @@
     </ClInclude>
     <ClInclude Include="3rd_party\tiny_obj_loader.h">
       <Filter>Файлы заголовков\3rd_party</Filter>
+    </ClInclude>
+    <ClInclude Include="scene_object.h">
+      <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

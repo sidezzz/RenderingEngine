@@ -1,18 +1,19 @@
 #pragma once
-#include "primitives.h"
 
-class Camera
+#include "scene_object.h"
+
+class Camera : public SceneObject
 {
 public:
-	Transform GetTransform() const;
 	float GetFov() const;
 	float GetAspectRatio() const;
 	Matrix4x4 GetProjection() const;
+	void SetFov(float fov);
+	void SetAspectRatio(float aspect_ratio);
 
-//private:
-	Transform transform_;
+protected:
 	float aspect_ratio_ = 1.f;
-	float fov_ = 90.f;
+	float fov_ = 80.f;
 	float near_plane_ = 1.f;
 	float far_plane_ = 800.f;
 };
