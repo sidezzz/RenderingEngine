@@ -10,17 +10,16 @@ public:
 	virtual ~MeshRendererData() = default;
 };
 
-//struct HomogenousVector3 : Vector3
-//{
-//	float w = 1.f;
-//};
-
 struct Vertex
 {
 	Vector3 position;
-	Vector3 normal; // currently unused
+	Vector3 normal;
 	Vector2 uv; // currently unused
-	ColorInt color;
+
+	// per-vertex material
+	Vector3 ambient;
+	Vector3 diffuse;
+	Vector3 specular;
 };
 
 using Index = int;

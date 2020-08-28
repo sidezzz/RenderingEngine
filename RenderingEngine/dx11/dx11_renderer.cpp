@@ -8,7 +8,9 @@ struct alignas(16) Dx11ConstantBuffer
 	Matrix4x4 model_transform;
 	Matrix4x4 view_transform;
 	Matrix4x4 projection_transform;
+	Matrix4x4 view_projection_transform;
 	Matrix4x4 model_view_projection_transform;
+	Vector3 camera_position;
 };
 
 bool Dx11Renderer::Initialize(HWND hwnd)
@@ -46,9 +48,13 @@ bool Dx11Renderer::Initialize(HWND hwnd)
 	{
 		D3D11_RASTERIZER_DESC desc = {};
 		desc.FillMode = D3D11_FILL_SOLID;
-		desc.CullMode = D3D11_CULL_NONE;
+		desc.CullMode = D3D11_CULL_BACK;
 		desc.ScissorEnable = false;
 		desc.DepthClipEnable = true;
+
+		desc.DepthBias = -1;
+		desc.DepthBiasClamp = 1.f;
+		desc.SlopeScaledDepthBias = 0.01;
 		last_error_ = device_->CreateRasterizerState(&desc, solid_rasterizer_state_.GetAddressOf());
 		if (FAILED(last_error_))
 		{
@@ -56,6 +62,7 @@ bool Dx11Renderer::Initialize(HWND hwnd)
 		}
 
 		desc.FillMode = D3D11_FILL_WIREFRAME;
+		desc.CullMode = D3D11_CULL_NONE;
 		last_error_ = device_->CreateRasterizerState(&desc, wireframe_rasterizer_state_.GetAddressOf());
 		if (FAILED(last_error_))
 		{
@@ -89,10 +96,12 @@ bool Dx11Renderer::Initialize(HWND hwnd)
 
 		D3D11_INPUT_ELEMENT_DESC desc[] =
 		{
-			{ "POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "TEXCOORD",  0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(Vertex, uv),       D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "COLOR",     0, DXGI_FORMAT_R8G8B8A8_UNORM,  0, offsetof(Vertex, color),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "POSITION",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL",     0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD",   0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(Vertex, uv),       D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "COLOR",      0, DXGI_FORMAT_R32G32B32_FLOAT,  0, offsetof(Vertex, ambient),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "COLOR",      1, DXGI_FORMAT_R32G32B32_FLOAT,  0, offsetof(Vertex, diffuse),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "COLOR",      2, DXGI_FORMAT_R32G32B32_FLOAT,  0, offsetof(Vertex, specular),    D3D11_INPUT_PER_VERTEX_DATA, 0 }
 		};
 		last_error_ = device_->CreateInputLayout(desc, ARRAYSIZE(desc), G_vertex_shader, sizeof(G_vertex_shader), input_layout_.GetAddressOf());
 		if (FAILED(last_error_))
@@ -124,7 +133,7 @@ bool Dx11Renderer::CreateViewportBuffers()
 		desc.Height = std::max(1.f, viewport_size_.y);
 		desc.MipLevels = 1;
 		desc.ArraySize = 1;
-		desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		desc.Format = DXGI_FORMAT_D32_FLOAT;
 		desc.SampleDesc.Count = 1;
 		desc.SampleDesc.Quality = 0;
 		desc.Usage = D3D11_USAGE_DEFAULT;
@@ -183,7 +192,8 @@ void Dx11Renderer::RenderScene(Scene* scene)
 	Dx11ConstantBuffer cpu_constant_buffer;
 	cpu_constant_buffer.view_transform = scene->GetCamera().GetTransform().ToMatrix().Inverse();
 	cpu_constant_buffer.projection_transform = scene->GetCamera().GetProjection();
-	const auto view_projection = cpu_constant_buffer.projection_transform * cpu_constant_buffer.view_transform;
+	cpu_constant_buffer.view_projection_transform = cpu_constant_buffer.projection_transform * cpu_constant_buffer.view_transform;
+	cpu_constant_buffer.camera_position = scene->GetCamera().GetPosition();
 
 	Mesh* last_setup_mesh = nullptr;
 	ID3D11RasterizerState* last_rasterizer_state_ = nullptr;
@@ -225,7 +235,7 @@ void Dx11Renderer::RenderScene(Scene* scene)
 		}
 
 		cpu_constant_buffer.model_transform = instance.GetTransform().ToMatrix();
-		cpu_constant_buffer.model_view_projection_transform = view_projection * cpu_constant_buffer.model_transform;
+		cpu_constant_buffer.model_view_projection_transform = cpu_constant_buffer.view_projection_transform * cpu_constant_buffer.model_transform;
 
 		D3D11_MAPPED_SUBRESOURCE constant_buffer_resource;
 		last_error_ = context_->Map(constant_buffer_.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constant_buffer_resource);
@@ -250,6 +260,7 @@ void Dx11Renderer::SetupRenderState()
 	context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	context_->VSSetShader(vertex_shader_.Get(), nullptr, 0);
 	context_->VSSetConstantBuffers(0, 1, constant_buffer_.GetAddressOf());
+	context_->PSSetConstantBuffers(0, 1, constant_buffer_.GetAddressOf());
 	context_->PSSetShader(pixel_shader_.Get(), nullptr, 0);
 
 	context_->OMSetDepthStencilState(depth_stencil_state_.Get(), 0);

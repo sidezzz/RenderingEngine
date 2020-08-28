@@ -1,23 +1,26 @@
-cbuffer Dx11ConstantBuffer : register(b0)
-{
-	float4x4 model_transform;
-	float4x4 view_transform;
-	float4x4 projection_transform;
-	float4x4 model_view_projection_transform;
-};
-
 struct PS_INPUT
 {
 	float4 position : SV_POSITION;
-	nointerpolation float3 normal : NORMAL;
-	float4 color : COLOR0;
+	float3 normal : NORMAL0;
 	float2 uv : TEXCOORD0;
+
+	float3 ambient : COLOR0;
+	float3 diffuse : COLOR1;
+	float3 specular : COLOR2;
+
+	float3 light_normal : NORMAL1;
+	float3 reflect_normal : NORMAL2;
 };
 
 float4 main(PS_INPUT input) : SV_TARGET0
 {
-	float4 diffuse = { 0.7f, 0.7f, 0.7f, 1.0f};
+	float ambient_intensity = 0.25;
+	float diffuse_intensity = saturate(dot(input.normal, input.light_normal) / (length(input.normal) * length(input.light_normal)));
+	float specular_intensity = saturate(pow(max(dot(input.light_normal, input.reflect_normal), 0), 64));
+	
+	//float3 reflect_normal = reflect(-input.light_normal, input.normal);
+	//float specular_intensity = pow(max(dot(input.light_normal, reflect_normal), 0), 32);
 
-    float4 ambient = {0.1, 0.1, 0.1, 1.0};
-    return ambient + input.color * saturate(dot(diffuse, input.normal));
+
+	return float4((input.diffuse * diffuse_intensity + input.ambient * ambient_intensity + input.specular * specular_intensity).xyz, 1.f);
 }

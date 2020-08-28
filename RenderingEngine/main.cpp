@@ -128,22 +128,34 @@ std::shared_ptr<Mesh> BuildTestMesh(std::string file_name)
 			vertex.normal.z = attrib.normals[3 * idx.normal_index + 1];
 			vertex.normal.x = attrib.normals[3 * idx.normal_index + 2];
 
-			ColorFloat color(1.f, 1.f, 1.f, 1.f);
+			Vector3 ambient(1.f, 1.f, 1.f);
+			Vector3 diffuse(1.f, 1.f, 1.f);
+			Vector3 specular(0.f, 0.f, 0.f);
 			auto face_id = i / 3;
 			auto material_id = shape.mesh.material_ids[face_id];
 			if (material_id < materials.size())
 			{
-				color.r = materials[material_id].diffuse[0];
-				color.g = materials[material_id].diffuse[1];
-				color.b = materials[material_id].diffuse[2];
+				ambient.x = materials[material_id].ambient[0];
+				ambient.y = materials[material_id].ambient[1];
+				ambient.z = materials[material_id].ambient[2];
+
+				diffuse.x = materials[material_id].diffuse[0];
+				diffuse.y = materials[material_id].diffuse[1];
+				diffuse.z = materials[material_id].diffuse[2];
+
+				specular.x = materials[material_id].specular[0];
+				specular.y = materials[material_id].specular[1];
+				specular.z = materials[material_id].specular[2];
 			}
-			vertex.color = ColorInt(color);
-			/*ColorFloat color;
-			color.r = attrib.colors[3 * idx.vertex_index + 0];
-			color.g = attrib.colors[3 * idx.vertex_index + 1];
-			color.b = attrib.colors[3 * idx.vertex_index + 2];
-			color.a = 1.f;
-			vertex.color = ColorInt(color);*/
+			else
+			{
+				diffuse.x = attrib.colors[3 * idx.vertex_index + 0];
+				diffuse.y = attrib.colors[3 * idx.vertex_index + 1];
+				diffuse.z = attrib.colors[3 * idx.vertex_index + 2];
+			}
+			vertex.ambient = ambient;
+			vertex.diffuse = diffuse;
+			vertex.specular = specular;
 
 			converted_vertices.emplace_back(std::move(vertex));
 			converted_indices.push_back(converted_indices.size());
@@ -180,32 +192,32 @@ int main()
 	pyramide.mesh_ = pyramide_mesh;
 	pyramide.transform_.translation.x = 0.8f;*/
 
-	MeshInstance car(BuildTestMesh("D:\\Downloads\\6e48z1kc7r40-bugatti\\bugatti\\bugatti.obj"));
+	/*MeshInstance car(BuildTestMesh("D:\\Downloads\\6e48z1kc7r40-bugatti\\bugatti\\bugatti.obj"));
 	car.SetScale({ 10, 10, 10 });
 	car.SetPosition({ 0, 0, 4 });
 
 	MeshInstance weapon(BuildTestMesh("D:\\Downloads\\88yrcjq4775s-M4A4\\m4a1.obj"));
 	weapon.SetPosition({ -40, -67, 185 });
-	weapon.SetScale({ 3, 3, 3 });
+	weapon.SetScale({ 3, 3, 3 });*/
 
 	MeshInstance ironman(BuildTestMesh("D:\\Downloads\\jzb865er6v-IronMan\\IronMan\\IronMan.obj"));
 	ironman.SetPosition({ 0, 50, 10 });
 
-	MeshInstance wire_ironman = ironman;
+	/*MeshInstance wire_ironman = ironman;
 	wire_ironman.SetPosition(wire_ironman.GetPosition() + Vector3(80, 0, 0));
 	wire_ironman.SetRotation({ 180, 0, 0 });
 	wire_ironman.SetWireframe(true);
 
 	MeshInstance drone(BuildTestMesh("D:\\Downloads\\99-intergalactic_spaceship-obj\\Intergalactic_Spaceship-(Wavefront).obj"));
 
-	MeshInstance rungholt(BuildTestMesh("D:\\Downloads\\rungholt\\rungholt.obj"));
+	MeshInstance rungholt(BuildTestMesh("D:\\Downloads\\rungholt\\rungholt.obj"));*/
 
-	SCENE.instances_.push_back(drone);
-	SCENE.instances_.push_back(car);
-	SCENE.instances_.push_back(weapon);
+	//SCENE.instances_.push_back(drone);
+	//SCENE.instances_.push_back(car);
+	//SCENE.instances_.push_back(weapon);
 	SCENE.instances_.push_back(ironman);
-	SCENE.instances_.push_back(wire_ironman);
-	SCENE.instances_.push_back(rungholt);
+	//SCENE.instances_.push_back(wire_ironman);
+	//SCENE.instances_.push_back(rungholt);
 
 
 	WNDCLASSEXA wc = { sizeof(WNDCLASSEXA), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandleA(NULL), NULL, NULL, NULL, NULL, "RenderingEngine", NULL };
@@ -239,7 +251,7 @@ int main()
 
 		auto elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(current_frame_time - last_frame_time);
 
-		auto speed = 10.f * static_cast<float>(elapsed.count());
+		auto speed = 40.f * static_cast<float>(elapsed.count());
 		auto& camera = SCENE.GetCamera();
 		if (GetAsyncKeyState(0x57) & 0x8000)
 		{
