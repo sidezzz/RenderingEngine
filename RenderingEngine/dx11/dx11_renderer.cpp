@@ -10,7 +10,8 @@ struct alignas(16) Dx11ConstantBuffer
 	Matrix4x4 projection_transform;
 	Matrix4x4 view_projection_transform;
 	Matrix4x4 model_view_projection_transform;
-	Vector3 camera_position;
+	alignas(16) Vector3 camera_position;
+	alignas(16) ColorFloat model_color_multiplier;
 };
 
 bool Dx11Renderer::Initialize(HWND hwnd)
@@ -51,19 +52,36 @@ bool Dx11Renderer::Initialize(HWND hwnd)
 		desc.CullMode = D3D11_CULL_BACK;
 		desc.ScissorEnable = false;
 		desc.DepthClipEnable = true;
-
-		desc.DepthBias = -1;
-		desc.DepthBiasClamp = 1.f;
-		desc.SlopeScaledDepthBias = 0.01;
+		
 		last_error_ = device_->CreateRasterizerState(&desc, solid_rasterizer_state_.GetAddressOf());
 		if (FAILED(last_error_))
 		{
 			return false;
 		}
 
+		desc.DepthBias = -100;
+		desc.DepthBiasClamp = -0.00001f;
+		desc.SlopeScaledDepthBias = 0.f;// -0.001f;
 		desc.FillMode = D3D11_FILL_WIREFRAME;
 		desc.CullMode = D3D11_CULL_NONE;
 		last_error_ = device_->CreateRasterizerState(&desc, wireframe_rasterizer_state_.GetAddressOf());
+		if (FAILED(last_error_))
+		{
+			return false;
+		}
+	}
+	{
+		D3D11_BLEND_DESC desc = {};
+		desc.AlphaToCoverageEnable = false;
+		desc.RenderTarget[0].BlendEnable = true;
+		desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+		desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+		desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+		desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		last_error_ = device_->CreateBlendState(&desc, blend_state_.GetAddressOf());
 		if (FAILED(last_error_))
 		{
 			return false;
@@ -99,9 +117,10 @@ bool Dx11Renderer::Initialize(HWND hwnd)
 			{ "POSITION",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "NORMAL",     0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, normal),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "TEXCOORD",   0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(Vertex, uv),       D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "COLOR",      0, DXGI_FORMAT_R32G32B32_FLOAT,  0, offsetof(Vertex, ambient),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "COLOR",      1, DXGI_FORMAT_R32G32B32_FLOAT,  0, offsetof(Vertex, diffuse),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "COLOR",      2, DXGI_FORMAT_R32G32B32_FLOAT,  0, offsetof(Vertex, specular),    D3D11_INPUT_PER_VERTEX_DATA, 0 }
+			{ "COLOR",      0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, ambient),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "COLOR",      1, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, diffuse),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "COLOR",      2, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, specular),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "PSIZE",      0, DXGI_FORMAT_R32_FLOAT,       0, offsetof(Vertex, shininess),    D3D11_INPUT_PER_VERTEX_DATA, 0 }
 		};
 		last_error_ = device_->CreateInputLayout(desc, ARRAYSIZE(desc), G_vertex_shader, sizeof(G_vertex_shader), input_layout_.GetAddressOf());
 		if (FAILED(last_error_))
@@ -189,6 +208,8 @@ bool Dx11Renderer::ResizeViewport(const Vector2& size)
 void Dx11Renderer::RenderScene(Scene* scene)
 {
 	SetupRenderState();
+	context_->ClearRenderTargetView(render_target_.Get(), scene->GetBackgroundColor().raw);
+
 	Dx11ConstantBuffer cpu_constant_buffer;
 	cpu_constant_buffer.view_transform = scene->GetCamera().GetTransform().ToMatrix().Inverse();
 	cpu_constant_buffer.projection_transform = scene->GetCamera().GetProjection();
@@ -236,6 +257,7 @@ void Dx11Renderer::RenderScene(Scene* scene)
 
 		cpu_constant_buffer.model_transform = instance.GetTransform().ToMatrix();
 		cpu_constant_buffer.model_view_projection_transform = cpu_constant_buffer.view_projection_transform * cpu_constant_buffer.model_transform;
+		cpu_constant_buffer.model_color_multiplier = instance.GetColorMultiplier();
 
 		D3D11_MAPPED_SUBRESOURCE constant_buffer_resource;
 		last_error_ = context_->Map(constant_buffer_.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constant_buffer_resource);
@@ -262,8 +284,9 @@ void Dx11Renderer::SetupRenderState()
 	context_->VSSetConstantBuffers(0, 1, constant_buffer_.GetAddressOf());
 	context_->PSSetConstantBuffers(0, 1, constant_buffer_.GetAddressOf());
 	context_->PSSetShader(pixel_shader_.Get(), nullptr, 0);
-
 	context_->OMSetDepthStencilState(depth_stencil_state_.Get(), 0);
+	context_->OMSetBlendState(blend_state_.Get(), nullptr, 0xFFFFFFFF);
+
 	D3D11_VIEWPORT vp = {};
 	vp.Width = viewport_size_.x;
 	vp.Height = viewport_size_.y;
@@ -271,12 +294,6 @@ void Dx11Renderer::SetupRenderState()
 	vp.MaxDepth = 1.0f;
 	vp.TopLeftX = vp.TopLeftY = 0;
 	context_->RSSetViewports(1, &vp);
-	ColorFloat background;
-	background.r = 0.3f;
-	background.g = 0.3f;
-	background.b = 0.3f;
-	background.a = 1.f;
-	context_->ClearRenderTargetView(render_target_.Get(), background.raw);
 	context_->ClearDepthStencilView(depth_stencil_view_.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
 }
 std::unique_ptr<Dx11MeshRendererData> Dx11Renderer::CreateMeshRendererData(const Mesh* mesh)

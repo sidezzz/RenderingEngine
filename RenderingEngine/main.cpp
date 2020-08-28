@@ -1,23 +1,13 @@
 #include <iostream>
 #include <chrono>
+#include <functional>
+#include <future>
 #include <Windows.h>
 #include <windowsx.h>
 
 #include "primitives.h"
 #include "dx11/dx11_renderer.h"
 #include "3rd_party/tiny_obj_loader.h"
-
-void PrintMatrix(const Matrix4x4& m)
-{
-	for (int i = 0; i < 4; ++i)
-	{
-		for (int j = 0; j < 4; ++j)
-		{
-			printf("%.3f ", m.m[i][j]);
-		}
-		printf("\n");
-	}
-}
 
 Scene SCENE;
 Dx11Renderer RENDERER;
@@ -85,98 +75,9 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	return ::DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
-std::shared_ptr<Mesh> BuildTestMesh(std::string file_name)
-{
-	std::string inputfile = file_name;// "IronMan.obj";//"Intergalactic_Spaceship-(Wavefront).obj";
-	std::string material_dir;
-	auto dir_end = inputfile.rfind('\\');
-	if (dir_end != std::string::npos)
-	{
-		material_dir = std::string(inputfile.begin(), inputfile.begin() + dir_end);
-	}
-	tinyobj::attrib_t attrib;
-	std::vector<tinyobj::shape_t> shapes;
-	std::vector<tinyobj::material_t> materials;
-
-	std::string warn;
-	std::string err;
-
-	bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, inputfile.c_str(), material_dir.empty() ? nullptr : material_dir.c_str(), true);
-
-	if (!warn.empty()) {
-		std::cout << "WARN " << warn << std::endl;
-	}
-
-	if (!err.empty()) {
-		std::cerr << "ERR " << err << std::endl;
-	}
-
-	std::vector<Vertex> converted_vertices;
-	std::vector<Index> converted_indices;
-	for (auto& shape : shapes)
-	{
-		int i = 0;
-		for (auto& idx : shape.mesh.indices)
-		{
-			Vertex vertex;
-			// axis are inverted due to different coordinate system
-			vertex.position.y = attrib.vertices[3 * idx.vertex_index + 0];
-			vertex.position.z = attrib.vertices[3 * idx.vertex_index + 1];
-			vertex.position.x = attrib.vertices[3 * idx.vertex_index + 2];
-
-			vertex.normal.y = attrib.normals[3 * idx.normal_index + 0];
-			vertex.normal.z = attrib.normals[3 * idx.normal_index + 1];
-			vertex.normal.x = attrib.normals[3 * idx.normal_index + 2];
-
-			Vector3 ambient(1.f, 1.f, 1.f);
-			Vector3 diffuse(1.f, 1.f, 1.f);
-			Vector3 specular(0.f, 0.f, 0.f);
-			auto face_id = i / 3;
-			auto material_id = shape.mesh.material_ids[face_id];
-			if (material_id < materials.size())
-			{
-				ambient.x = materials[material_id].ambient[0];
-				ambient.y = materials[material_id].ambient[1];
-				ambient.z = materials[material_id].ambient[2];
-
-				diffuse.x = materials[material_id].diffuse[0];
-				diffuse.y = materials[material_id].diffuse[1];
-				diffuse.z = materials[material_id].diffuse[2];
-
-				specular.x = materials[material_id].specular[0];
-				specular.y = materials[material_id].specular[1];
-				specular.z = materials[material_id].specular[2];
-			}
-			else
-			{
-				diffuse.x = attrib.colors[3 * idx.vertex_index + 0];
-				diffuse.y = attrib.colors[3 * idx.vertex_index + 1];
-				diffuse.z = attrib.colors[3 * idx.vertex_index + 2];
-			}
-			vertex.ambient = ambient;
-			vertex.diffuse = diffuse;
-			vertex.specular = specular;
-
-			converted_vertices.emplace_back(std::move(vertex));
-			converted_indices.push_back(converted_indices.size());
-			++i;
-		}
-	}
-
-	return std::make_shared<Mesh>(std::move(converted_vertices), std::move(converted_indices));
-}
 
 int main()
 {
-	Transform t;
-	//t.translation.x = 10.f;
-	//t.translation.y = -2;
-	//t.rotation.yaw = 0.f;
-	//t.scale = Vector3(0.25, 0.25, 0.25);
-	t.rotation.roll = 90.f;
-	//t.rotation.pitch = 90.f;
-	PrintMatrix(t.ToMatrix());
-
 	/*auto pyramide_mesh = std::make_shared<Mesh>();
 	pyramide_mesh->vertices_ = 
 	{ 
@@ -192,32 +93,52 @@ int main()
 	pyramide.mesh_ = pyramide_mesh;
 	pyramide.transform_.translation.x = 0.8f;*/
 
-	/*MeshInstance car(BuildTestMesh("D:\\Downloads\\6e48z1kc7r40-bugatti\\bugatti\\bugatti.obj"));
-	car.SetScale({ 10, 10, 10 });
-	car.SetPosition({ 0, 0, 4 });
+	auto loader = SCENE.SetMeshLoader<ObjSceneMeshLoader>();
 
-	MeshInstance weapon(BuildTestMesh("D:\\Downloads\\88yrcjq4775s-M4A4\\m4a1.obj"));
-	weapon.SetPosition({ -40, -67, 185 });
-	weapon.SetScale({ 3, 3, 3 });*/
+	loader->LoadMeshAsync("D:\\Downloads\\jzb865er6v-IronMan\\IronMan\\IronMan.obj", [](auto mesh)
+	{
+		MeshInstance ironman(mesh);
+		ironman.SetPosition({ 0, 50, 10 });
 
-	MeshInstance ironman(BuildTestMesh("D:\\Downloads\\jzb865er6v-IronMan\\IronMan\\IronMan.obj"));
-	ironman.SetPosition({ 0, 50, 10 });
+		MeshInstance wire_ironman = ironman;
+		wire_ironman.SetPosition(wire_ironman.GetPosition() + Vector3(80, 0, 0));
+		wire_ironman.SetRotation({ 180, 0, 0 });
+		wire_ironman.SetWireframe(true);
 
-	/*MeshInstance wire_ironman = ironman;
-	wire_ironman.SetPosition(wire_ironman.GetPosition() + Vector3(80, 0, 0));
-	wire_ironman.SetRotation({ 180, 0, 0 });
-	wire_ironman.SetWireframe(true);
+		return std::vector{ ironman, wire_ironman };
+	});
 
-	MeshInstance drone(BuildTestMesh("D:\\Downloads\\99-intergalactic_spaceship-obj\\Intergalactic_Spaceship-(Wavefront).obj"));
+	loader->LoadMeshAsync("D:\\Downloads\\rungholt\\rungholt.obj", [](auto mesh)
+	{
+		MeshInstance city(mesh);
+		MeshInstance wire_city = city;
+		wire_city.SetWireframe(true);
+		wire_city.SetColorMultiplier({ 0.f, 0.f, 0.f, 1.f });
 
-	MeshInstance rungholt(BuildTestMesh("D:\\Downloads\\rungholt\\rungholt.obj"));*/
+		return std::vector{ city, wire_city };
+	});
 
-	//SCENE.instances_.push_back(drone);
-	//SCENE.instances_.push_back(car);
-	//SCENE.instances_.push_back(weapon);
-	SCENE.instances_.push_back(ironman);
-	//SCENE.instances_.push_back(wire_ironman);
-	//SCENE.instances_.push_back(rungholt);
+	loader->LoadMeshAsync("D:\\Downloads\\6e48z1kc7r40-bugatti\\bugatti\\bugatti.obj", [](auto mesh)
+	{
+		MeshInstance car(mesh);
+		car.SetScale({ 10, 10, 10 });
+		car.SetPosition({ 0, 0, 4 });
+
+		return std::vector{ car };
+	});
+
+	loader->LoadMeshAsync("D:\\Downloads\\88yrcjq4775s-M4A4\\m4a1.obj", [](auto mesh)
+	{
+		MeshInstance weapon(mesh);
+		weapon.SetPosition({ -40, -67, 185 });
+		weapon.SetScale({ 3, 3, 3 });
+
+		MeshInstance weapon_polygon_highlight = weapon;
+		weapon_polygon_highlight.SetWireframe(true);
+		weapon_polygon_highlight.SetColorMultiplier({ 0.f, 0.f, 0.f, 1.f });
+
+		return std::vector{ weapon, weapon_polygon_highlight };
+	});
 
 
 	WNDCLASSEXA wc = { sizeof(WNDCLASSEXA), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandleA(NULL), NULL, NULL, NULL, NULL, "RenderingEngine", NULL };
@@ -286,6 +207,7 @@ int main()
 			camera.SetPosition(camera.GetPosition() + camera.GetRotation().RotateVector({ 0,0,-1 }) * speed);
 		}
 
+		SCENE.Tick();
 		RENDERER.RenderScene(&SCENE);
 		last_frame_time = current_frame_time;
 	}

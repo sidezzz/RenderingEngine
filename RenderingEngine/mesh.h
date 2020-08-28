@@ -20,6 +20,7 @@ struct Vertex
 	Vector3 ambient;
 	Vector3 diffuse;
 	Vector3 specular;
+	float shininess;
 };
 
 using Index = int;

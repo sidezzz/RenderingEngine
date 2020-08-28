@@ -40,6 +40,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> wireframe_rasterizer_state_;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_state_;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depth_stencil_view_;
+	Microsoft::WRL::ComPtr<ID3D11BlendState> blend_state_;
 
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> input_layout_;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertex_shader_;

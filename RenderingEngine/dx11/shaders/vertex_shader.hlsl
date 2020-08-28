@@ -17,6 +17,7 @@ struct VS_INPUT
 	float3 ambient : COLOR0;
 	float3 diffuse : COLOR1;
 	float3 specular : COLOR2;
+	float shininess : PSIZE;
 };
 
 struct PS_INPUT
@@ -28,6 +29,7 @@ struct PS_INPUT
 	float3 ambient : COLOR0;
 	float3 diffuse : COLOR1;
 	float3 specular : COLOR2;
+	float shininess : PSIZE;
 
 	float3 light_normal : NORMAL1;
 	float3 reflect_normal : NORMAL2;
@@ -45,6 +47,7 @@ PS_INPUT main(VS_INPUT input)
 	output.ambient = input.ambient;
 	output.diffuse = input.diffuse;
 	output.specular = input.specular;
+	output.shininess = input.shininess;
 
 	output.light_normal = normalize(camera_position - world_position.xyz);
 	output.reflect_normal = reflect(-output.light_normal, output.normal);
