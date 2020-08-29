@@ -150,6 +150,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="3rd_party\imgui.cpp" />
+    <ClCompile Include="3rd_party\imgui_draw.cpp" />
+    <ClCompile Include="3rd_party\imgui_impl_dx11.cpp" />
+    <ClCompile Include="3rd_party\imgui_impl_win32.cpp" />
+    <ClCompile Include="3rd_party\imgui_widgets.cpp" />
     <ClCompile Include="3rd_party\tiny_obj_loader.cc" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="dx11\dx11_renderer.cpp" />
@@ -161,6 +166,14 @@
     <ClCompile Include="scene_object.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="3rd_party\imconfig.h" />
+    <ClInclude Include="3rd_party\imgui.h" />
+    <ClInclude Include="3rd_party\imgui_impl_dx11.h" />
+    <ClInclude Include="3rd_party\imgui_impl_win32.h" />
+    <ClInclude Include="3rd_party\imgui_internal.h" />
+    <ClInclude Include="3rd_party\imstb_rectpack.h" />
+    <ClInclude Include="3rd_party\imstb_textedit.h" />
+    <ClInclude Include="3rd_party\imstb_truetype.h" />
     <ClInclude Include="3rd_party\tiny_obj_loader.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="dx11\dx11_renderer.h" />

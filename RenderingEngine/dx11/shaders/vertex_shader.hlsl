@@ -29,10 +29,11 @@ struct PS_INPUT
 	float3 ambient : COLOR0;
 	float3 diffuse : COLOR1;
 	float3 specular : COLOR2;
-	float shininess : PSIZE;
+	float shininess : PSIZE0;
 
 	float3 light_normal : NORMAL1;
 	float3 reflect_normal : NORMAL2;
+	float light_intensity : PSIZE1;
 };
 
 PS_INPUT main(VS_INPUT input)
@@ -51,6 +52,7 @@ PS_INPUT main(VS_INPUT input)
 
 	output.light_normal = normalize(camera_position - world_position.xyz);
 	output.reflect_normal = reflect(-output.light_normal, output.normal);
+	output.light_intensity = 30000.f / pow(length(camera_position - world_position.xyz), 2);
 
 	return output;
 }

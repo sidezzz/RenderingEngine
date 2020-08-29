@@ -14,6 +14,10 @@ struct alignas(16) Dx11ConstantBuffer
 	alignas(16) ColorFloat model_color_multiplier;
 };
 
+Microsoft::WRL::ComPtr<ID3D11Device> Dx11Renderer::GetDevice() const
+{
+	return device_;
+}
 bool Dx11Renderer::Initialize(HWND hwnd)
 {
 	{
@@ -60,7 +64,7 @@ bool Dx11Renderer::Initialize(HWND hwnd)
 		}
 
 		desc.DepthBias = -100;
-		desc.DepthBiasClamp = -0.00001f;
+		desc.DepthBiasClamp = -0.0000001f;
 		desc.SlopeScaledDepthBias = 0.f;// -0.001f;
 		desc.FillMode = D3D11_FILL_WIREFRAME;
 		desc.CullMode = D3D11_CULL_NONE;
@@ -210,11 +214,11 @@ void Dx11Renderer::RenderScene(Scene* scene)
 	SetupRenderState();
 	context_->ClearRenderTargetView(render_target_.Get(), scene->GetBackgroundColor().raw);
 
-	Dx11ConstantBuffer cpu_constant_buffer;
-	cpu_constant_buffer.view_transform = scene->GetCamera().GetTransform().ToMatrix().Inverse();
-	cpu_constant_buffer.projection_transform = scene->GetCamera().GetProjection();
-	cpu_constant_buffer.view_projection_transform = cpu_constant_buffer.projection_transform * cpu_constant_buffer.view_transform;
-	cpu_constant_buffer.camera_position = scene->GetCamera().GetPosition();
+	Dx11ConstantBuffer gpu_constant_buffer;
+	gpu_constant_buffer.view_transform = scene->GetCamera().GetTransform().ToMatrix().Inverse();
+	gpu_constant_buffer.projection_transform = scene->GetCamera().GetPerspectiveProjection();
+	gpu_constant_buffer.view_projection_transform = gpu_constant_buffer.projection_transform * gpu_constant_buffer.view_transform;
+	gpu_constant_buffer.camera_position = scene->GetCamera().GetPosition();
 
 	Mesh* last_setup_mesh = nullptr;
 	ID3D11RasterizerState* last_rasterizer_state_ = nullptr;
@@ -255,9 +259,9 @@ void Dx11Renderer::RenderScene(Scene* scene)
 			last_rasterizer_state_ = solid_rasterizer_state_.Get();
 		}
 
-		cpu_constant_buffer.model_transform = instance.GetTransform().ToMatrix();
-		cpu_constant_buffer.model_view_projection_transform = cpu_constant_buffer.view_projection_transform * cpu_constant_buffer.model_transform;
-		cpu_constant_buffer.model_color_multiplier = instance.GetColorMultiplier();
+		gpu_constant_buffer.model_transform = instance.GetTransform().ToMatrix();
+		gpu_constant_buffer.model_view_projection_transform = gpu_constant_buffer.view_projection_transform * gpu_constant_buffer.model_transform;
+		gpu_constant_buffer.model_color_multiplier = instance.GetColorMultiplier();
 
 		D3D11_MAPPED_SUBRESOURCE constant_buffer_resource;
 		last_error_ = context_->Map(constant_buffer_.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constant_buffer_resource);
@@ -265,14 +269,15 @@ void Dx11Renderer::RenderScene(Scene* scene)
 		{
 			continue;
 		}
-		auto gpu_constant_buffer = static_cast<Dx11ConstantBuffer*>(constant_buffer_resource.pData);
-		*gpu_constant_buffer = cpu_constant_buffer;
+		*static_cast<Dx11ConstantBuffer*>(constant_buffer_resource.pData) = gpu_constant_buffer;
 		context_->Unmap(constant_buffer_.Get(), 0);
 
 		context_->DrawIndexed(mesh->GetIndices().size(), 0, 0);
 	}
-
-	last_error_ = swapchain_->Present(1, 0);
+}
+void Dx11Renderer::Present(bool vsync)
+{
+	last_error_ = swapchain_->Present(vsync, 0);
 }
 
 void Dx11Renderer::SetupRenderState()

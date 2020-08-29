@@ -22,6 +22,7 @@ struct PS_INPUT
 
 	float3 light_normal : NORMAL1;
 	float3 reflect_normal : NORMAL2;
+	float light_intensity : PSIZE1;
 };
 
 float4 main(PS_INPUT input) : SV_TARGET0
@@ -31,7 +32,7 @@ float4 main(PS_INPUT input) : SV_TARGET0
 	float3 reflect_normal = normalize(input.reflect_normal);
 
 	float ambient_intensity = 0.25;
-	float diffuse_intensity = saturate(dot(normal, light_normal) / (length(normal) * length(light_normal)));
+	float diffuse_intensity = saturate(input.light_intensity) * dot(normal, light_normal);
 	float specular_intensity = saturate(pow(max(dot(light_normal, reflect_normal), 0), input.shininess));
 
 	return float4((input.diffuse * diffuse_intensity + input.ambient * ambient_intensity + input.specular * specular_intensity), 1.f) * model_color_multiplier;

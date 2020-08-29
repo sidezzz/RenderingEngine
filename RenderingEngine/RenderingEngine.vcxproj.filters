@@ -31,6 +31,12 @@
     <Filter Include="Исходные файлы\3rd_party">
       <UniqueIdentifier>{485e1d79-870f-458e-8f4b-e1171c4c77b1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Исходные файлы\3rd_party\imgui">
+      <UniqueIdentifier>{f178579d-7ec7-45b0-a81c-552a1641da40}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\3rd_party\imgui">
+      <UniqueIdentifier>{ea5fd777-03aa-480b-af6e-203e78cf5109}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -59,6 +65,21 @@
     </ClCompile>
     <ClCompile Include="scene_object.cpp">
       <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="3rd_party\imgui.cpp">
+      <Filter>Исходные файлы\3rd_party\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rd_party\imgui_draw.cpp">
+      <Filter>Исходные файлы\3rd_party\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rd_party\imgui_impl_dx11.cpp">
+      <Filter>Исходные файлы\3rd_party\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rd_party\imgui_impl_win32.cpp">
+      <Filter>Исходные файлы\3rd_party\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rd_party\imgui_widgets.cpp">
+      <Filter>Исходные файлы\3rd_party\imgui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -94,6 +115,30 @@
     </ClInclude>
     <ClInclude Include="scene_object.h">
       <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="3rd_party\imconfig.h">
+      <Filter>Файлы заголовков\3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="3rd_party\imgui.h">
+      <Filter>Файлы заголовков\3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="3rd_party\imgui_impl_dx11.h">
+      <Filter>Файлы заголовков\3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="3rd_party\imgui_impl_win32.h">
+      <Filter>Файлы заголовков\3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="3rd_party\imgui_internal.h">
+      <Filter>Файлы заголовков\3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="3rd_party\imstb_rectpack.h">
+      <Filter>Файлы заголовков\3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="3rd_party\imstb_textedit.h">
+      <Filter>Файлы заголовков\3rd_party\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="3rd_party\imstb_truetype.h">
+      <Filter>Файлы заголовков\3rd_party\imgui</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

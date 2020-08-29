@@ -22,8 +22,10 @@ private:
 class Dx11Renderer : public Renderer
 {
 public:
+	Microsoft::WRL::ComPtr<ID3D11Device> GetDevice() const;
 	bool Initialize(HWND hwnd);
 	void RenderScene(Scene* scene) override;
+	void Present(bool vsync);
 	bool ResizeViewport(const Vector2& size) override;
 
 private:

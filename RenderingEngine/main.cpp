@@ -8,12 +8,22 @@
 #include "primitives.h"
 #include "dx11/dx11_renderer.h"
 #include "3rd_party/tiny_obj_loader.h"
+#include "3rd_party/imgui.h"
+#include "3rd_party/imgui_impl_win32.h"
+#include "3rd_party/imgui_impl_dx11.h"
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 Scene SCENE;
 Dx11Renderer RENDERER;
 
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+	{
+		return true;
+	}
+
 	switch (msg)
 	{
 	case WM_SIZE:
@@ -27,54 +37,69 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		::PostQuitMessage(0);
 		return 0;
-	case WM_MOUSEMOVE:
+	};
+
+	bool imgui_mouse = false;
+	bool imgui_keyboard = false;
+	if (ImGui::GetCurrentContext())
 	{
-		//return 0;
-		static auto last_x_pos = GET_X_LPARAM(lParam);
-		static auto last_y_pos = GET_Y_LPARAM(lParam);
-		auto x_pos = GET_X_LPARAM(lParam);
-		auto y_pos = GET_Y_LPARAM(lParam);
+		auto& io = ImGui::GetIO();
+		imgui_mouse = io.WantCaptureMouse;
+		imgui_keyboard = io.WantCaptureKeyboard;
+	}
 
-		auto x_diff = x_pos - last_x_pos;
-		auto y_diff = y_pos - last_y_pos;
-
-		auto cam_rot = SCENE.GetCamera().GetRotation();
-		cam_rot.yaw += x_diff * 0.1;
-		cam_rot.pitch += y_diff * 0.1f;
-		SCENE.GetCamera().SetRotation(cam_rot.Clamp());
-
-		last_x_pos = x_pos;
-		last_y_pos = y_pos;
-		if (GetActiveWindow() == hWnd)
+	if (!imgui_mouse)
+	{
+		switch (msg)
 		{
-			RECT rect;
-			GetClientRect(hWnd, &rect);
+		case WM_MOUSEMOVE:
+		{
+			static auto last_x_pos = GET_X_LPARAM(lParam);
+			static auto last_y_pos = GET_Y_LPARAM(lParam);
+			auto x_pos = GET_X_LPARAM(lParam);
+			auto y_pos = GET_Y_LPARAM(lParam);
 
-			POINT ul;
-			ul.x = rect.left;
-			ul.y = rect.top;
+			auto x_diff = x_pos - last_x_pos;
+			auto y_diff = y_pos - last_y_pos;
 
-			POINT lr;
-			lr.x = rect.right;
-			lr.y = rect.bottom;
+			auto cam_rot = SCENE.GetCamera().GetRotation();
+			cam_rot.yaw += x_diff * 0.1;
+			cam_rot.pitch += y_diff * 0.1f;
+			SCENE.GetCamera().SetRotation(cam_rot.Clamp());
 
-			MapWindowPoints(hWnd, nullptr, &ul, 1);
-			MapWindowPoints(hWnd, nullptr, &lr, 1);
+			last_x_pos = x_pos;
+			last_y_pos = y_pos;
+			if (GetActiveWindow() == hWnd)
+			{
+				RECT rect;
+				GetClientRect(hWnd, &rect);
 
-			SetCursorPos(ul.x + (lr.x - ul.x) / 2, ul.y + (lr.y - ul.y) / 2);
+				POINT ul;
+				ul.x = rect.left;
+				ul.y = rect.top;
 
-			last_x_pos = (lr.x - ul.x) / 2;
-			last_y_pos = (lr.y - ul.y) / 2;
+				POINT lr;
+				lr.x = rect.right;
+				lr.y = rect.bottom;
+
+				MapWindowPoints(hWnd, nullptr, &ul, 1);
+				MapWindowPoints(hWnd, nullptr, &lr, 1);
+
+				SetCursorPos(ul.x + (lr.x - ul.x) / 2, ul.y + (lr.y - ul.y) / 2);
+
+				last_x_pos = (lr.x - ul.x) / 2;
+				last_y_pos = (lr.y - ul.y) / 2;
+			}
+			return 0;
 		}
-		return 0;
+		case WM_MOUSEWHEEL:
+			SCENE.GetCamera().SetFov(SCENE.GetCamera().GetFov() - (float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
+			return 0;
+		}
 	}
-	case WM_MOUSEWHEEL:
-		SCENE.GetCamera().SetFov(SCENE.GetCamera().GetFov() - (float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
-		return 0;
-	}
+
 	return ::DefWindowProc(hWnd, msg, wParam, lParam);
 }
-
 
 int main()
 {
@@ -111,11 +136,11 @@ int main()
 	loader->LoadMeshAsync("D:\\Downloads\\rungholt\\rungholt.obj", [](auto mesh)
 	{
 		MeshInstance city(mesh);
-		MeshInstance wire_city = city;
-		wire_city.SetWireframe(true);
-		wire_city.SetColorMultiplier({ 0.f, 0.f, 0.f, 1.f });
+		//MeshInstance wire_city = city;
+		//wire_city.SetWireframe(true);
+		//wire_city.SetColorMultiplier({ 0.f, 0.f, 0.f, 1.f });
 
-		return std::vector{ city, wire_city };
+		return std::vector{ city };// , wire_city };
 	});
 
 	loader->LoadMeshAsync("D:\\Downloads\\6e48z1kc7r40-bugatti\\bugatti\\bugatti.obj", [](auto mesh)
@@ -125,6 +150,30 @@ int main()
 		car.SetPosition({ 0, 0, 4 });
 
 		return std::vector{ car };
+	});
+
+	loader->LoadMeshAsync("D:\\Downloads\\BeachBabeWidowmaker.obj", [](auto mesh)
+	{
+		MeshInstance widow(mesh);
+		widow.SetPosition({ 0, 180, 10 });
+		widow.SetScale({ 100, 100, 100 });
+		widow.SetColorMultiplier({ 1.f,1.f,1.f, 0.5f });
+
+		return std::vector{ widow };
+	});
+
+	loader->LoadMeshAsync("D:\\Downloads\\Viper_Lewd_Rigged_PUBLIC_1.1.obj", [](auto mesh)
+	{
+		MeshInstance viper(mesh);
+		viper.SetPosition({ 140, 180, 10 });
+		viper.SetRotation({ 180,0,0 });
+		viper.SetScale({ 100, 100, 100 });
+
+		/*MeshInstance wire_viper = viper;
+		wire_viper.SetWireframe(true);
+		wire_viper.SetColorMultiplier({ 0.f, 0.f, 0.f, 1.f });*/
+
+		return std::vector{ viper };// , wire_viper };
 	});
 
 	loader->LoadMeshAsync("D:\\Downloads\\88yrcjq4775s-M4A4\\m4a1.obj", [](auto mesh)
@@ -145,7 +194,8 @@ int main()
 	RegisterClassExA(&wc);
 	HWND hwnd = CreateWindowA(wc.lpszClassName, "Rendering Engine", WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, wc.hInstance, NULL);
 
-	if (!RENDERER.Initialize(hwnd))
+	ImGui::CreateContext();
+	if (!ImGui_ImplWin32_Init(hwnd) || !RENDERER.Initialize(hwnd) || !ImGui_ImplDX11_Init(RENDERER.GetDevice().Get()))
 	{
 		UnregisterClassA(wc.lpszClassName, wc.hInstance);
 		return 1;
@@ -209,6 +259,19 @@ int main()
 
 		SCENE.Tick();
 		RENDERER.RenderScene(&SCENE);
+		ImGui_ImplDX11_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+
+		if (ImGui::Begin("sasd"))
+		{
+			
+		}
+		ImGui::End();
+
+		ImGui::Render();
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+		RENDERER.Present(true);
 		last_frame_time = current_frame_time;
 	}
 
