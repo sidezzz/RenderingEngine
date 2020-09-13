@@ -21,7 +21,31 @@ struct Vertex
 	Vector3 diffuse;
 	Vector3 specular;
 	float shininess;
+
+	bool operator==(const Vertex& rhs) const
+	{
+		return memcmp(this, &rhs, sizeof(Vertex)) == 0;
+	}
 };
+
+namespace std
+{
+	template<>
+	struct hash<Vertex>
+	{
+		size_t operator()(const Vertex& value) const
+		{
+			size_t result = 0;
+			auto begin = reinterpret_cast<const float*>(&value);
+			auto end = begin + sizeof(Vertex) / sizeof(float);
+			for (auto itr = begin; itr != end; ++itr)
+			{
+				result ^= hash<float>()(*itr);
+			}
+			return result;
+		}
+	};
+}
 
 using Index = int;
 

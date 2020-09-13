@@ -152,30 +152,6 @@ int main()
 		return std::vector{ car };
 	});
 
-	loader->LoadMeshAsync("D:\\Downloads\\BeachBabeWidowmaker.obj", [](auto mesh)
-	{
-		MeshInstance widow(mesh);
-		widow.SetPosition({ 0, 180, 10 });
-		widow.SetScale({ 100, 100, 100 });
-		widow.SetColorMultiplier({ 1.f,1.f,1.f, 0.5f });
-
-		return std::vector{ widow };
-	});
-
-	loader->LoadMeshAsync("D:\\Downloads\\Viper_Lewd_Rigged_PUBLIC_1.1.obj", [](auto mesh)
-	{
-		MeshInstance viper(mesh);
-		viper.SetPosition({ 140, 180, 10 });
-		viper.SetRotation({ 180,0,0 });
-		viper.SetScale({ 100, 100, 100 });
-
-		/*MeshInstance wire_viper = viper;
-		wire_viper.SetWireframe(true);
-		wire_viper.SetColorMultiplier({ 0.f, 0.f, 0.f, 1.f });*/
-
-		return std::vector{ viper };// , wire_viper };
-	});
-
 	loader->LoadMeshAsync("D:\\Downloads\\88yrcjq4775s-M4A4\\m4a1.obj", [](auto mesh)
 	{
 		MeshInstance weapon(mesh);

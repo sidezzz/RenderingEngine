@@ -14,6 +14,6 @@ public:
 protected:
 	float aspect_ratio_ = 1.f;
 	float fov_ = 80.f;
-	float near_plane_ = 0.01f;
-	float far_plane_ = 800.f;
+	float near_plane_ = 10.f;
+	float far_plane_ = 8000.f;
 };

@@ -1,3 +1,5 @@
+#include <unordered_map>
+
 #include "scene.h"
 #include "3rd_party/tiny_obj_loader.h"
 
@@ -67,8 +69,14 @@ std::shared_ptr<Mesh> ObjSceneMeshLoader::LoadMesh(const std::string& file_path)
 
 	std::vector<Vertex> converted_vertices;
 	std::vector<Index> converted_indices;
+	std::unordered_map<Vertex, int> unique_vertices;
+
+	unique_vertices.reserve(attrib.vertices.size() / 3);
+	converted_vertices.reserve(attrib.vertices.size() / 3);
 	for (auto& shape : shapes)
 	{
+		converted_indices.reserve(converted_indices.size() + shape.mesh.indices.size());
+
 		int i = 0;
 		for (auto& idx : shape.mesh.indices)
 		{
@@ -77,7 +85,6 @@ std::shared_ptr<Mesh> ObjSceneMeshLoader::LoadMesh(const std::string& file_path)
 			vertex.position.y = attrib.vertices[3 * idx.vertex_index + 0];
 			vertex.position.z = attrib.vertices[3 * idx.vertex_index + 1];
 			vertex.position.x = attrib.vertices[3 * idx.vertex_index + 2];
-
 			vertex.normal.y = attrib.normals[3 * idx.normal_index + 0];
 			vertex.normal.z = attrib.normals[3 * idx.normal_index + 1];
 			vertex.normal.x = attrib.normals[3 * idx.normal_index + 2];
@@ -113,8 +120,17 @@ std::shared_ptr<Mesh> ObjSceneMeshLoader::LoadMesh(const std::string& file_path)
 				vertex.diffuse.z = attrib.colors[3 * idx.vertex_index + 2];
 			}
 
-			converted_vertices.emplace_back(std::move(vertex));
-			converted_indices.push_back(converted_indices.size());
+			auto found_itr = unique_vertices.find(vertex);
+			if (found_itr != unique_vertices.end())
+			{
+				converted_indices.push_back(found_itr->second);
+			}
+			else
+			{
+				unique_vertices[vertex] = converted_vertices.size();
+				converted_indices.push_back(converted_vertices.size());
+				converted_vertices.push_back(vertex);
+			}
 			++i;
 		}
 	}
