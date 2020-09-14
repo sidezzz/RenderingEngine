@@ -138,6 +138,10 @@ std::shared_ptr<Mesh> ObjSceneMeshLoader::LoadMesh(const std::string& file_path)
 	return std::make_shared<Mesh>(std::move(converted_vertices), std::move(converted_indices));
 }
 
+std::list<MeshInstance>& Scene::GetInstances()
+{
+	return instances_;
+}
 const std::list<MeshInstance>& Scene::GetInstances() const
 {
 	return instances_;

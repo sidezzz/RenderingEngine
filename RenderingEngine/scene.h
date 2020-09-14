@@ -48,6 +48,7 @@ private:
 class Scene
 {
 public:
+	std::list<MeshInstance>& GetInstances();
 	const std::list<MeshInstance>& GetInstances() const;
 	const Camera& GetCamera() const;
 	Camera& GetCamera();

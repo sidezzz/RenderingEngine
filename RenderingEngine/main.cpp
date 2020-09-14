@@ -12,10 +12,89 @@
 #include "3rd_party/imgui_impl_win32.h"
 #include "3rd_party/imgui_impl_dx11.h"
 
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+
+class CameraController
+{
+public:
+	CameraController(Camera& camera)
+		: camera_(camera) {}
+	void HandleMouseMove(const Vector2& delta)
+	{
+		auto cam_rot = camera_.GetRotation();
+		auto fov_scale = camera_.GetFov() / 75.f;
+		cam_rot.yaw += fov_scale * delta.x * mouse_sensetivity_.x;
+		cam_rot.pitch -= fov_scale * delta.y * mouse_sensetivity_.y;
+		camera_.SetRotation(cam_rot.Clamp());
+	}
+	void HandleMouseWheel(float delta)
+	{
+		camera_.SetFov(camera_.GetFov() * (1.f + 0.05f * delta));
+	}
+	void HandleKeyDown(int key_code)
+	{
+		for (auto& key : key_map_)
+		{
+			if (key.key_code == key_code)
+			{
+				if (!key.active)
+				{
+					movement_vector_ += key.movement;
+					key.active = true;
+				}
+				break;
+			}
+		}
+	}
+	void HandleKeyUp(int key_code)
+	{
+		for (auto& key : key_map_)
+		{
+			if (key.key_code == key_code)
+			{
+				if (key.active)
+				{
+					movement_vector_ -= key.movement;
+					key.active = false;
+				}
+				break;
+			}
+		}
+	}
+	void Tick(float time_delta)
+	{
+		camera_.SetPosition(camera_.GetPosition() + camera_.GetRotation().RotateVector(movement_vector_ * movement_scale_) * time_delta);
+	}
+
+private:
+	struct Key
+	{
+		int key_code;
+		Vector3 movement;
+		bool active;
+	};
+
+	Camera& camera_;
+	Vector2 mouse_sensetivity_ = { 0.1f, 0.1f };
+	Vector3 movement_vector_;
+	float movement_scale_ = 40.f;
+	Key key_map_[6] =
+	{
+		{0x57, { 1.f, 0, 0}, false},
+		{0x53, {-1.f, 0, 0}, false},
+		{0x44, {0, 1.f, 0}, false},
+		{0x41, {0, -1.f, 0}, false},
+		{VK_SPACE, {0, 0, 1.f}, false},
+		{VK_CONTROL, {0, 0, -1.f}, false}
+	};
+};
 
 Scene SCENE;
+CameraController CONTROLLER(SCENE.GetCamera());
 Dx11Renderer RENDERER;
+bool MENU_ACTIVE = true;
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -39,16 +118,13 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		return 0;
 	};
 
-	bool imgui_mouse = false;
-	bool imgui_keyboard = false;
-	if (ImGui::GetCurrentContext())
+	if (msg == WM_KEYDOWN && wParam == VK_ESCAPE)
 	{
-		auto& io = ImGui::GetIO();
-		imgui_mouse = io.WantCaptureMouse;
-		imgui_keyboard = io.WantCaptureKeyboard;
+		MENU_ACTIVE = !MENU_ACTIVE;
+		return 0;
 	}
 
-	if (!imgui_mouse)
+	if (!MENU_ACTIVE)
 	{
 		switch (msg)
 		{
@@ -62,10 +138,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			auto x_diff = x_pos - last_x_pos;
 			auto y_diff = y_pos - last_y_pos;
 
-			auto cam_rot = SCENE.GetCamera().GetRotation();
-			cam_rot.yaw += x_diff * 0.1;
-			cam_rot.pitch += y_diff * 0.1f;
-			SCENE.GetCamera().SetRotation(cam_rot.Clamp());
+			CONTROLLER.HandleMouseMove({ static_cast<float>(x_diff), static_cast<float>(y_diff) });
 
 			last_x_pos = x_pos;
 			last_y_pos = y_pos;
@@ -92,8 +165,14 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			}
 			return 0;
 		}
+		case WM_KEYDOWN:
+			CONTROLLER.HandleKeyDown(wParam);
+			return 0;
+		case WM_KEYUP:
+			CONTROLLER.HandleKeyUp(wParam);
+			return 0;
 		case WM_MOUSEWHEEL:
-			SCENE.GetCamera().SetFov(SCENE.GetCamera().GetFov() - (float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
+			CONTROLLER.HandleMouseWheel(-(float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
 			return 0;
 		}
 	}
@@ -103,27 +182,13 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 int main()
 {
-	/*auto pyramide_mesh = std::make_shared<Mesh>();
-	pyramide_mesh->vertices_ = 
-	{ 
-		Vertex{{-1,-1,0}, Vector3(1,1,1), {}, 0xFF00FFFF}, Vertex{{0,0,3}, Vector3(1,1,1), {}, 0xFF00FF00}, Vertex{{-1,1,0}, Vector3(1,1,1), {}, 0xFFFFFFFF},
-		Vertex{{1,1,0}, Vector3(1,1,1), {}, 0xFF0000FF}, Vertex{{1,-1,0}, Vector3(1,1,1), {}, 0xFFFF00FF},
-		Vertex{{-1,-1,0}, Vector3(1,1,1), {}, 0xFF0000FF}, Vertex{{-1,1,0}, Vector3(1,1,1), {}, 0xFF0000FF},
-		Vertex{{1,1,0}, Vector3(1,1,1), {}, 0xFF0000FF}, Vertex{{1,-1,0}, Vector3(1,1,1), {}, 0xFF0000FF}
-	};
-	pyramide_mesh->indices_ = { 0, 1, 2, 2, 1, 3, 3, 1, 4, 4, 1, 0, 5, 6, 7, 7, 8, 5 };
-
-
-	MeshInstance pyramide;
-	pyramide.mesh_ = pyramide_mesh;
-	pyramide.transform_.translation.x = 0.8f;*/
-
 	auto loader = SCENE.SetMeshLoader<ObjSceneMeshLoader>();
 
 	loader->LoadMeshAsync("D:\\Downloads\\jzb865er6v-IronMan\\IronMan\\IronMan.obj", [](auto mesh)
 	{
 		MeshInstance ironman(mesh);
 		ironman.SetPosition({ 0, 50, 10 });
+		ironman.SetRotation({ 0, 30, 0 });
 
 		MeshInstance wire_ironman = ironman;
 		wire_ironman.SetPosition(wire_ironman.GetPosition() + Vector3(80, 0, 0));
@@ -165,7 +230,6 @@ int main()
 		return std::vector{ weapon, weapon_polygon_highlight };
 	});
 
-
 	WNDCLASSEXA wc = { sizeof(WNDCLASSEXA), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandleA(NULL), NULL, NULL, NULL, NULL, "RenderingEngine", NULL };
 	RegisterClassExA(&wc);
 	HWND hwnd = CreateWindowA(wc.lpszClassName, "Rendering Engine", WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, wc.hInstance, NULL);
@@ -198,54 +262,81 @@ int main()
 
 		auto elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(current_frame_time - last_frame_time);
 
-		auto speed = 40.f * static_cast<float>(elapsed.count());
-		auto& camera = SCENE.GetCamera();
-		if (GetAsyncKeyState(0x57) & 0x8000)
-		{
-			camera.SetPosition(camera.GetPosition() + camera.GetRotation().RotateVector({ 1,0,0 }) * speed);
-		}
-		if (GetAsyncKeyState(0x53) & 0x8000)
-		{
-			camera.SetPosition(camera.GetPosition() + camera.GetRotation().RotateVector({ -1,0,0 }) * speed);
-		}
-		if (GetAsyncKeyState(0x41) & 0x8000)
-		{
-			camera.SetPosition(camera.GetPosition() + camera.GetRotation().RotateVector({ 0,-1,0 }) * speed);
-		}
-		if (GetAsyncKeyState(0x44) & 0x8000)
-		{
-			camera.SetPosition(camera.GetPosition() + camera.GetRotation().RotateVector({ 0,1,0 }) * speed);
-		}
-		if (GetAsyncKeyState(0x51) & 0x8000)
-		{
-			camera.SetRotation(camera.GetRotation() + Rotator(0, 0, speed));
-		}
-		if (GetAsyncKeyState(0x45) & 0x8000)
-		{
-			camera.SetRotation(camera.GetRotation() + Rotator(0, 0, -speed));
-		}
-		if (GetAsyncKeyState(VK_SPACE) & 0x8000)
-		{
-			camera.SetPosition(camera.GetPosition() + camera.GetRotation().RotateVector({ 0,0,1 }) * speed);
-		}
-		if (GetAsyncKeyState(VK_CONTROL) & 0x8000)
-		{
-			camera.SetPosition(camera.GetPosition() + camera.GetRotation().RotateVector({ 0,0,-1 }) * speed);
-		}
-
+		CONTROLLER.Tick(elapsed.count());
 		SCENE.Tick();
 		RENDERER.RenderScene(&SCENE);
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
+
 		ImGui::NewFrame();
 
-		if (ImGui::Begin("sasd"))
+		if (MENU_ACTIVE)
 		{
-			
+			if (ImGui::Begin("Menu"))
+			{
+				ImGui::Text("FOV: %f", SCENE.GetCamera().GetFov());
+				auto rotation = SCENE.GetCamera().GetRotation();
+				ImGui::Text("Rotation: %f %f", rotation.yaw, rotation.pitch);
+
+				if (ImGui::CollapsingHeader("Instances"))
+				{
+					int i = 0;
+					for (auto& instance : SCENE.GetInstances())
+					{
+						if (ImGui::TreeNode(&instance, "%d", i))
+						{
+							auto wireframe = instance.IsWireframe();
+							ImGui::Checkbox("Wireframe", &wireframe);
+							instance.SetWireframe(wireframe);
+							if (ImGui::TreeNode("Translation"))
+							{
+								auto position = instance.GetPosition();
+								ImGui::SliderFloat("X", &position.x, -1000, 1000);
+								ImGui::SliderFloat("Y", &position.y, -1000, 1000);
+								ImGui::SliderFloat("Z", &position.z, -1000, 1000);
+								instance.SetPosition(position);
+								ImGui::TreePop();
+							}
+							if (ImGui::TreeNode("Rotation"))
+							{
+								auto rad_rotator = DegreeToRad(instance.GetRotation());
+								ImGui::SliderAngle("Yaw", &rad_rotator.yaw, 0, 360);
+								ImGui::SliderAngle("Pitch", &rad_rotator.pitch, 0, 360);
+								ImGui::SliderAngle("Roll", &rad_rotator.roll, 0, 360);
+								instance.SetRotation(RadToDegree(rad_rotator));
+								ImGui::TreePop();
+							}
+							if (ImGui::TreeNode("Scale"))
+							{
+								auto scale = instance.GetScale();
+								static bool lock = false;
+								ImGui::Checkbox("Lock axis", &lock);
+								if (lock)
+								{
+									ImGui::SliderFloat("Axis", &scale.x, 0, 200);
+									scale.y = scale.x;
+									scale.z = scale.x;
+								}
+								else
+								{
+									ImGui::SliderFloat("X", &scale.x, 0, 200);
+									ImGui::SliderFloat("Y", &scale.y, 0, 200);
+									ImGui::SliderFloat("Z", &scale.z, 0, 200);
+								}
+								instance.SetScale(scale);
+								ImGui::TreePop();
+							}
+							ImGui::TreePop();
+						}
+						++i;
+					}
+				}
+			}
+			ImGui::End();
 		}
-		ImGui::End();
 
 		ImGui::Render();
+
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 		RENDERER.Present(true);
 		last_frame_time = current_frame_time;

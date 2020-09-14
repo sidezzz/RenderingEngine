@@ -42,7 +42,7 @@ Vector3 Rotator::RotateVector(const Vector3& vec) const
 }
 Matrix4x4 Rotator::RotationMatrix() const
 {
-	auto rad_rotator = DegreeToRad(*this);
+	auto rad_rotator = DegreeToRad(Rotator(yaw, 360.f - pitch, roll));
 	auto cw = std::cos(rad_rotator.yaw);
 	auto sw = std::sin(rad_rotator.yaw);
 	auto cv = std::cos(rad_rotator.pitch);
@@ -63,8 +63,8 @@ Rotator Rotator::Clamp() const
 }
 float Rotator::ClampAxis(float angle)
 {
-	const auto ceil_val = (-angle) / 360.f;
-	return angle + std::ceil(ceil_val) * 360.f;
+	const auto ceil_val = std::ceil(-angle / 360.f);
+	return angle + ceil_val * 360.f;
 }
 
 float Matrix4x4::Determinant() const
