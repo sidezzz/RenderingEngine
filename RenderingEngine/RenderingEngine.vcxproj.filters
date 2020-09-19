@@ -149,4 +149,9 @@
       <Filter>Исходные файлы\dx11\shaders</Filter>
     </FxCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="dx11\shaders\common.hlsli">
+      <Filter>Исходные файлы\dx11\shaders</Filter>
+    </None>
+  </ItemGroup>
 </Project>
